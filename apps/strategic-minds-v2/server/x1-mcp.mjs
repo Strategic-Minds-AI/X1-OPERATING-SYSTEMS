@@ -75,7 +75,7 @@ export async function runMcp(req,res,{env=process.env,fetchImpl=fetch}={}){
     const args=params.arguments&&typeof params.arguments==="object"&&!Array.isArray(params.arguments)?params.arguments:{};
     let call;
     if(params.name==="x1_get_queue_status"){
-     result={status:"X1_STAGING_READ_VERIFIED",tenant_id:operator.tenant_id,role:operator.role,queue:operator.sample?.counts??{},dispatch:"NOT_DISPATCHED_BY_MCP",environment:"preview"};
+     result=toolResult({status:"X1_STAGING_READ_VERIFIED",tenant_id:operator.tenant_id,role:operator.role,queue:operator.sample?.counts??{},dispatch:"NOT_DISPATCHED_BY_MCP",environment:"preview"});
      break;
     }
     if(params.name==="x1_list_work_items"){
