@@ -97,6 +97,29 @@ Target architecture remains Base44-independent. This audit records source and re
 6. Do not deploy the Base44 frontend or connect it as a runtime dependency. Rebuild only the needed browser controls inside the native X1 admin; retain the browser engine as a separately isolated service behind an authenticated gateway.
 
 
+
+### 6. Communications OS — XTREME-SYSTEMS/xtreme-communications-os
+
+- Canonical repository supplied by the user: `XTREME-SYSTEMS/xtreme-communications-os`; default branch `main`; tree SHA `90aa7cb66407d6c98f1137c4ed301fcf189fc895`; GitHub metadata reports **public**.
+- This is a broad Base44 communications application, not yet a native X1 service. The root frontend uses `@base44/sdk` and `@base44/vite-plugin`; backend functions import Base44's Deno SDK and persist through Base44 entities. It cannot be deployed wholesale as part of the Base44-independent X1 runtime.
+- Domain surface includes SMS/MMS/WhatsApp messaging, email, outbound calls/AI voice, SIP trunks, Telnyx/Twilio gateways, campaigns and audience segments, provider routing, phone-number inventory, webhooks, delivery receipts, usage/billing, workflows, agent tasks, and approval/outbox records. These are candidate donor capabilities—not evidence that each provider is configured or live.
+- The inspected `gatewayMessages`, `gatewayEmail`, `gatewayCalls`, and `dispatchWebhook` functions use Base44 service-role entity access. Some gateway paths accept an API key in the JSON body as well as a Bearer header and query `ApiKey.key_value`; the entity schema stores `key_value` as a string. Native migration should use high-entropy keys stored hashed, scopes and per-tenant quotas, constant-time verification where applicable, rotation/revocation, and redacted audit events. Never expose service-role access to the client.
+- The inspected webhook dispatcher sets `signature_valid` from the presence of a signature in its ingest path; presence alone is not cryptographic verification. Native ingress must verify HMAC over the exact raw request bytes against the configured tenant secret, enforce timestamp/replay windows and idempotency, and persist only redacted/appropriately protected payloads.
+- The campaign controller marks created campaigns `SANDBOX`, which is a useful guardrail to preserve. Before any live outreach, require tenant authorization, consent/source records, suppression and opt-out checks, channel-specific regulatory controls, approved templates, rate limits, provider-level idempotency, budget checks, explicit approval, and delivery receipts. Never interpret a generated campaign or queued record as a sent message.
+- Entity schemas include `OutboxMessage` statuses such as `pending_approval`, `approved`, `sending`, `sent`, `delivered`, `failed`, and `dead_letter`, plus `DeliveryReceipt`. These concepts are strong candidates for a native adapter over the existing X1 queue/lease and audit authority; do not create a competing scheduler/outbox service without proving the existing control plane cannot support the contract.
+- Initial scope is broad and source inspection was selective. Provider delivery, billing correctness, consent/opt-out enforcement, webhook authenticity, tenant isolation, secret storage, and retry/idempotency behavior have **not** been independently tested end to end.
+- Status: **COMMUNICATIONS CAPABILITY DONOR / BASE44-BOUND / PROVIDER AND COMPLIANCE READINESS UNVERIFIED**.
+
+## Communications integration boundary
+
+1. X1 remains the control plane and source of truth for tenant identity, authorization, approvals, budgets, task queue/leases, audit, and delivery evidence.
+2. Extract a provider-neutral communications adapter behind authenticated server-side X1 APIs. Keep provider-specific credentials in a server-side secret manager; never place them in browser bundles, manifests, prompt output, logs, or Git.
+3. Use one durable outbox/idempotency contract tied to X1's existing queue. Every operation should have tenant ID, actor, consent basis, policy/approval receipt, idempotency key, provider request ID, bounded retries, final status, and a redacted delivery receipt.
+4. Keep SMS, email, voice, campaigns, and webhook dispatch disabled in the migrated runtime until consent/suppression, authz, signed webhook verification, provider sandbox tests, spend limits, rate limiting, and opt-out behavior pass independent validation.
+5. Start with a read-only provider-health/configuration inventory and synthetic sandbox sends to test destinations only. Promote to real recipients only with explicit user approval and verified compliance gates.
+6. Rebuild needed admin controls natively in X1. Do not import Base44 frontend or functions as production dependencies; migrate business logic only after reviewing its security and provider behavior.
+
+
 ## Evidence limits
 
 This document records repository metadata and source files inspected on 2026-10-18. It does not certify live provider credentials, production runtime state, visual parity, deployment behavior, authenticated API flows, or production readiness.
