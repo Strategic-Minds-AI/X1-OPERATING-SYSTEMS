@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import './LaunchStudio.css';
 import DESIGN_TEMPLATE_CATALOG from './launchStudioTemplateCatalog.json';
+import { generateTokens, renderText, validateLaunchBlueprint } from './launchStudioEngine.js';
 
 const PALETTES = [
   {id:'C01',name:'Neutral SaaS Blue',bg:'#f8fafc',surface:'#ffffff',ink:'#0f172a',muted:'#64748b',primary:'#2563eb',accent:'#0ea5e9',secondary:'#dbeafe',gradient:'linear-gradient(125deg,#1d4ed8,#06b6d4)'},
@@ -157,8 +158,8 @@ function makeContent(project, industry) {
     headline:industry.headline,
     subheadline:industry.sub,
     primaryCta:industry.cta,
-    intro:name + ' helps customers' + area + ' with dependable service, clear communication, and solutions tailored to their needs.',
-    serviceCards:services.slice(0,6).map((title,i)=>({title,copy:'Professional ' + title.toLowerCase() + ' designed around your goals, timeline, and expectations.'})),
+    intro:renderText('{{businessName}} helps customers {{location}} with dependable {{industry}} service, clear communication, and solutions tailored to {{audience}}.', {businessName:name,location:area||'in your service area',industry:industry.label.toLowerCase(),audience:project.audience||'their needs'}),
+    serviceCards:services.slice(0,6).map((title,i)=>({title,copy:renderText('Professional {{service}} designed around {{audience}}, timelines, and expectations.',{service:title.toLowerCase(),audience:project.audience||'your needs'})})),
     benefits:['Clear recommendations and next steps','Responsive communication from start to finish','A process designed around quality and accountability'],
     process:[{title:'Tell us what you need',copy:'Share your goals, timing, and priorities.'},{title:'Get a tailored plan',copy:'We explain the recommended approach and next steps.'},{title:'Move forward with confidence',copy:'Stay informed as the work progresses.'}],
     faq:project.faqs || DEFAULT_PROJECT.faqs,
@@ -214,6 +215,8 @@ export default function LaunchStudio() {
   const palette = PALETTES.find(p=>p.id===project.paletteId) || PALETTES[1];
   const content = useMemo(()=>project.generatedContent || makeContent(project,industry),[project,industry]);
   const layout = LAYOUTS.find(l=>l.id===project.layoutId) || LAYOUTS[0];
+  const designTokens = useMemo(()=>generateTokens(project.customAccent||palette.primary),[project.customAccent,palette.primary]);
+  const qualityReceipt = useMemo(()=>validateLaunchBlueprint(project,content,designTokens),[project,content,designTokens]);
   const sections = SECTION_LIBRARY.filter(s=>s.label.toLowerCase().includes(sectionQuery.toLowerCase()) || s.group.toLowerCase().includes(sectionQuery.toLowerCase()));
   const industries = INDUSTRIES.filter(i=>i.label.toLowerCase().includes(industryQuery.toLowerCase()));
   const templateRecords = DESIGN_TEMPLATE_CATALOG.templates || [];
@@ -241,7 +244,7 @@ export default function LaunchStudio() {
   };
   const addTarget = () => update({launchTargets:[...project.launchTargets,{id:Date.now(),location:'New market, ST',businessName:project.businessName}]});
   const exportBlueprint = () => {
-    const payload={version:'launch-studio-blueprint-v1',createdAt:new Date().toISOString(),project:{...project,generatedContent:content},industry,palette,layout,requestedPages:project.pages,requestedSections:project.sections.map(id=>SECTION_LIBRARY.find(s=>s.id===id)).filter(Boolean),brand:{primary:project.customAccent||palette.primary,secondary:palette.accent,font:project.font,logoStyle:project.logoStyle},optimization:{seo:true,aeo:true,geo:true},imagePrompt:content.imagePrompt,provisioningStatus:'blueprint-exported-not-deployed'};
+    const payload={version:'launch-studio-blueprint-v1',createdAt:new Date().toISOString(),project:{...project,generatedContent:content},industry,palette,layout,requestedPages:project.pages,requestedSections:project.sections.map(id=>SECTION_LIBRARY.find(s=>s.id===id)).filter(Boolean),brand:{primary:project.customAccent||palette.primary,secondary:palette.accent,font:project.font,logoStyle:project.logoStyle},designTokens,qualityReceipt,optimization:{seo:true,aeo:true,geo:true},imagePrompt:content.imagePrompt,provisioningStatus:'blueprint-exported-not-deployed'};
     downloadFile(safeId(project.businessName)+'-launch-blueprint.json',JSON.stringify(payload,null,2));
     setStatus('Launch blueprint exported');
   };
@@ -303,7 +306,7 @@ export default function LaunchStudio() {
               <div className="x1-ls-site-footer"><strong>{project.businessName}</strong><span>{project.location} · {project.pages.length} pages · {project.sections.length} sections</span></div>
             </div>
           </div>
-          <div className="x1-ls-quality-row"><div><ShieldCheck size={17}/><span><strong>Industry relevance</strong><small>Content and image direction follow the selected industry</small></span><b>READY</b></div><div><Globe2 size={17}/><span><strong>SEO / AEO / GEO</strong><small>Metadata, FAQ, schema, and local-market fields</small></span><b>CONFIGURABLE</b></div><div><Rocket size={17}/><span><strong>Launch handoff</strong><small>Exportable blueprint for provisioning workflows</small></span><b>DRAFT</b></div></div>
+          <div className="x1-ls-quality-row"><div><ShieldCheck size={17}/><span><strong>Industry relevance</strong><small>Content and image direction follow the selected industry</small></span><b>READY</b></div><div><Globe2 size={17}/><span><strong>SEO / AEO / GEO</strong><small>Metadata, FAQ, schema, and local-market fields</small></span><b>CONFIGURABLE</b></div><div><Rocket size={17}/><span><strong>Launch handoff</strong><small>Exportable blueprint for provisioning workflows</small></span><b>DRAFT</b></div><div><ShieldCheck size={17}/><span><strong>Blueprint quality</strong><small>{qualityReceipt.errors.length?qualityReceipt.errors.length+' blocking checks':qualityReceipt.warnings.length?qualityReceipt.warnings.length+' review notes':'Required checks clear'}</small></span><b>{qualityReceipt.status==='READY_FOR_OPERATOR_REVIEW'?'READY':qualityReceipt.status==='REVIEW_REQUIRED'?'REVIEW':'BLOCKED'}</b></div></div>
         </section>
       </div>}
 
