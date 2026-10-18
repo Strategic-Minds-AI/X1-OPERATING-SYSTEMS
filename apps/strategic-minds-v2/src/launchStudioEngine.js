@@ -105,7 +105,7 @@ export function semanticRoles(hue,saturation=100,mode="light") {
   return roles;
 }
 export function generateTokens(seedColor="#176bff") {
-  let hex=String(seedColor||"#176bff").replace("#","");
+  let hex=String(seedColor||"#176bff").replace("#","").toLowerCase();
   if(!/^[0-9a-f]{6}$/i.test(hex))hex="176bff";
   const rgb=[0,2,4].map(i=>parseInt(hex.slice(i,i+2),16)/255);
   const max=Math.max(...rgb),min=Math.min(...rgb),delta=max-min;
