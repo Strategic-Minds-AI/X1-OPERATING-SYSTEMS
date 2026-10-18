@@ -20,14 +20,14 @@ export function resolveSeoPolicy(env = process.env) {
 }
 
 export function renderRobots(policy) {
-  if (!policy.indexable) return 'User-agent: *\\nDisallow: /\\n';
-  return 'User-agent: *\\nAllow: /\\n\\nSitemap: ' + policy.canonicalUrl + '/sitemap.xml\\n';
+  if (!policy.indexable) return 'User-agent: *\nDisallow: /\n';
+  return 'User-agent: *\nAllow: /\n\nSitemap: ' + policy.canonicalUrl + '/sitemap.xml\n';
 }
 
 export function renderSitemap(policy) {
   if (!policy.indexable) return null;
-  const urls = PUBLIC_PATHS.map(path => '  <url><loc>' + policy.canonicalUrl + path + '</loc></url>').join('\\n');
-  return '<?xml version="1.0" encoding="UTF-8"?>\\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\\n' + urls + '\\n</urlset>\\n';
+  const urls = PUBLIC_PATHS.map(path => '  <url><loc>' + policy.canonicalUrl + path + '</loc></url>').join('\n');
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls + '\n</urlset>\n';
 }
 
 export async function prepareSeoBuild({ outDir = resolve('dist'), env = process.env } = {}) {
@@ -42,10 +42,10 @@ export async function prepareSeoBuild({ outDir = resolve('dist'), env = process.
   try {
     let html = await readFile(htmlPath, 'utf8');
     const robotsTag = '<meta name="robots" content="' + (policy.indexable ? 'index,follow' : 'noindex,nofollow,noarchive') + '"/>';
-    if (/<meta\\s+name=["']robots["'][^>]*>/i.test(html)) html = html.replace(/<meta\\s+name=["']robots["'][^>]*>/i, robotsTag);
-    else html = html.replace('</head>', '  ' + robotsTag + '\\n </head>');
-    html = html.replace(/\\s*<link\\s+rel=["']canonical["'][^>]*>/ig, '');
-    if (policy.indexable) html = html.replace('</head>', '  <link rel="canonical" href="' + policy.canonicalUrl + '/v2/b"/>\\n </head>');
+    if (/<meta\s+name=["']robots["'][^>]*>/i.test(html)) html = html.replace(/<meta\s+name=["']robots["'][^>]*>/i, robotsTag);
+    else html = html.replace('</head>', '  ' + robotsTag + '\n </head>');
+    html = html.replace(/\s*<link\s+rel=["']canonical["'][^>]*>/ig, '');
+    if (policy.indexable) html = html.replace('</head>', '  <link rel="canonical" href="' + policy.canonicalUrl + '/v2/b"/>\n </head>');
     await writeFile(htmlPath, html, 'utf8');
   } catch (error) {
     if (error?.code !== 'ENOENT') throw error;
@@ -55,5 +55,5 @@ export async function prepareSeoBuild({ outDir = resolve('dist'), env = process.
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const result = await prepareSeoBuild();
-  process.stdout.write(JSON.stringify({ status: result.indexable ? 'INDEXING_APPROVED' : 'NOINDEX_SAFE_DEFAULT', ...result }) + '\\n');
+  process.stdout.write(JSON.stringify({ status: result.indexable ? 'INDEXING_APPROVED' : 'NOINDEX_SAFE_DEFAULT', ...result }) + '\n');
 }
