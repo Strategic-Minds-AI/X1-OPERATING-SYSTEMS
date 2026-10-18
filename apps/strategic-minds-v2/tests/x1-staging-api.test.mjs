@@ -60,6 +60,14 @@ function fakeSupabase(opts = {}) {
   return { fetchImpl, calls };
 }
 
+test("existing provider-managed staging secret alias stays preview-only", () => {
+  const { SUPABASE_SERVICE_ROLE_KEY, ...common } = VALID;
+  const alias = { ...common, SUPABASE_SERVICE_KEY: SUPABASE_SERVICE_ROLE_KEY };
+  assert.equal(resolveStagingBinding(alias).ok, true);
+  assert.equal(resolveStagingBinding(alias).serviceKey, SUPABASE_SERVICE_ROLE_KEY);
+  assert.equal(resolveStagingBinding({ ...alias, VERCEL_ENV: "production" }).ok, false);
+  assert.equal(resolveStagingBinding({ ...alias, SUPABASE_URL: "https://other.supabase.co" }).ok, false);
+});
 test("missing preview environment fails closed", () => {
   assert.deepEqual(resolveStagingBinding({ ...VALID, VERCEL_ENV: "production" }), {
     ok: false, code: "NON_PREVIEW_RUNTIME"

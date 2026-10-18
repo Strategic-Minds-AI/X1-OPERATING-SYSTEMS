@@ -32,14 +32,17 @@ export function resolveStagingBinding(env = {}) {
   ) {
     return { ok: false, code: "NON_STAGING_TARGET" };
   }
-  if (!env.SUPABASE_ANON_KEY || !env.SUPABASE_SERVICE_ROLE_KEY) {
+  // Bind to the existing Vercel Preview secret by reference; never copy or expose it.
+  // Origin and runtime above must be the exact, verified X1 staging target.
+  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY;
+  if (!env.SUPABASE_ANON_KEY || !serviceKey) {
     return { ok: false, code: "MISSING_SERVER_CREDENTIALS" };
   }
   return {
     ok: true,
     origin: candidate.origin,
     anonKey: env.SUPABASE_ANON_KEY,
-    serviceKey: env.SUPABASE_SERVICE_ROLE_KEY
+    serviceKey
   };
 }
 
