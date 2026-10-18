@@ -169,7 +169,7 @@ function makeContent(project, industry) {
 }
 function makeLogoSvg(project, palette) {
   const name = project.businessName || 'Brand';
-  const initials = name.split(/\\s+/).filter(Boolean).slice(0,2).map(s=>s[0]).join('').toUpperCase() || 'B';
+  const initials = name.split(/\s+/).filter(Boolean).slice(0,2).map(s=>s[0]).join('').toUpperCase() || 'B';
   const c1 = project.customAccent || palette.primary;
   const c2 = palette.accent;
   let mark = '';
