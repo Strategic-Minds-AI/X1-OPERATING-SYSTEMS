@@ -168,7 +168,7 @@ export async function runWorkItems(req, res, { env = process.env, fetchImpl = fe
     }), { key: binding.serviceKey, bearer: binding.serviceKey });
     if (!Array.isArray(rows) || rows.length !== 1) throw new PublicApiError(503, "STAGING_ENQUEUE_READBACK_UNVERIFIED");
     return respond(res, 201, {
-      status: "QUEUED_NOT_EXECUTED",
+      status: "DRAFT_SAVED_NOT_EXECUTED",
       item: safeRow(rows[0]),
       dispatch: "NOT_DISPATCHED_BY_API",
       message: "Saved as a DRAFT through the canonical X1 enqueue RPC. Current workers are read-only; no build or deployment is claimed."
