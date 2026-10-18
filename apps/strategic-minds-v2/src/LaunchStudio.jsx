@@ -6,6 +6,7 @@ import {
   Rocket, Search, Settings2, ShieldCheck, Sparkles, Trash2, WandSparkles, X
 } from 'lucide-react';
 import './LaunchStudio.css';
+import DESIGN_TEMPLATE_CATALOG from './launchStudioTemplateCatalog.json';
 
 const PALETTES = [
   {id:'C01',name:'Neutral SaaS Blue',bg:'#f8fafc',surface:'#ffffff',ink:'#0f172a',muted:'#64748b',primary:'#2563eb',accent:'#0ea5e9',secondary:'#dbeafe',gradient:'linear-gradient(125deg,#1d4ed8,#06b6d4)'},
@@ -203,6 +204,9 @@ export default function LaunchStudio() {
   const [activeTab, setActiveTab] = useState('build');
   const [sectionQuery, setSectionQuery] = useState('');
   const [industryQuery, setIndustryQuery] = useState('');
+  const [templateQuery, setTemplateQuery] = useState('');
+  const [templateIndustryFilter, setTemplateIndustryFilter] = useState('all');
+  const [templateLimit, setTemplateLimit] = useState(48);
   const [status, setStatus] = useState('Draft ready');
   const [generated, setGenerated] = useState(false);
   const [batchBusy, setBatchBusy] = useState(false);
@@ -212,6 +216,8 @@ export default function LaunchStudio() {
   const layout = LAYOUTS.find(l=>l.id===project.layoutId) || LAYOUTS[0];
   const sections = SECTION_LIBRARY.filter(s=>s.label.toLowerCase().includes(sectionQuery.toLowerCase()) || s.group.toLowerCase().includes(sectionQuery.toLowerCase()));
   const industries = INDUSTRIES.filter(i=>i.label.toLowerCase().includes(industryQuery.toLowerCase()));
+  const templateRecords = DESIGN_TEMPLATE_CATALOG.templates || [];
+  const filteredTemplates = templateRecords.filter(t => (templateIndustryFilter==='all'||t.industry===templateIndustryFilter) && [t.name,t.industry,t.layout,t.headline,t.subheadline].filter(Boolean).join(' ').toLowerCase().includes(templateQuery.toLowerCase()));
   const update = (patch) => setProject(prev=>({...prev,...patch,...(Object.prototype.hasOwnProperty.call(patch,'generatedContent')?{}:{generatedContent:null})}));
   useEffect(()=>{ try { localStorage.setItem('x1-launch-studio-project',JSON.stringify(project)); } catch {} },[project]);
   useEffect(()=>{ setGenerated(!!project.generatedContent); },[project.generatedContent]);
@@ -219,6 +225,14 @@ export default function LaunchStudio() {
     const next = makeContent(project,industry);
     setProject(prev=>({...prev,generatedContent:next,metaTitle:next.seoTitle,metaDescription:next.seoDescription}));
     setStatus('Content draft generated'); setActiveTab('content');
+  };
+  const applyTemplate = (t) => {
+    const aliases={legal:'law',healthcare:'medical',beauty:'beauty',fitness:'wellness',finance:'accounting',cleaning:'home-services',landscaping:'agriculture',ecommerce:'ecommerce',automotive:'automotive',construction:'construction',consulting:'consulting',restaurant:'restaurant',realEstate:'real-estate',pet:'pet',church:'church',government:'government',education:'education',travel:'travel',wedding:'events',photography:'photography',nonprofit:'nonprofit',saas:'saas',agency:'marketing',plumbing:'plumbing'};
+    const mapped=INDUSTRIES.find(i=>i.id===t.industry)||INDUSTRIES.find(i=>i.id===aliases[t.industry])||INDUSTRIES.find(i=>t.industry&&t.industry.includes(i.id))||industry;
+    const base=makeContent({...project,industry:mapped.id},mapped);
+    const nextContent={...base,eyebrow:t.eyebrow||mapped.label,headline:t.headline||base.headline,subheadline:t.subheadline||base.subheadline,primaryCta:t.cta||base.primaryCta,intro:t.featureCopy||base.intro,templateId:t.id,templateName:t.name,templateIndustry:t.industry,templateLayout:t.layout,templatePhoto:t.photo};
+    setProject(prev=>({...prev,industry:mapped.id,templateId:t.id,templateName:t.name,templateLayout:t.layout,customAccent:t.accent||prev.customAccent,generatedContent:nextContent}));
+    setStatus('Applied template '+t.id+' · '+t.name); setActiveTab('build');
   };
   const toggleSection = (id) => update({sections:project.sections.includes(id)?project.sections.filter(x=>x!==id):[...project.sections,id]});
   const addPage = () => {
@@ -245,7 +259,7 @@ export default function LaunchStudio() {
   };
   const logoSvg = makeLogoSvg(project,palette);
   const previewStyle = {'--ls-canvas':palette.bg,'--ls-surface':palette.surface,'--ls-ink':palette.ink,'--ls-muted':palette.muted,'--ls-primary':project.customAccent||palette.primary,'--ls-accent':palette.accent,'--ls-secondary':palette.secondary,'--ls-gradient':palette.gradient};
-  const tabs=[['build','Builder',LayoutTemplate],['brand','Brand & Colors',Palette],['content','Content Generator',WandSparkles],['pages','Pages & Sections',Layers3],['seo','SEO / AEO / GEO',Globe2],['launch','Mass Launch',Rocket]];
+  const tabs=[['build','Builder',LayoutTemplate],['templates','Template Library',LayoutTemplate],['brand','Brand & Colors',Palette],['content','Content Generator',WandSparkles],['pages','Pages & Sections',Layers3],['seo','SEO / AEO / GEO',Globe2],['launch','Mass Launch',Rocket]];
 
   return (
     <main className="x1-launch-studio" style={previewStyle}>
@@ -291,6 +305,14 @@ export default function LaunchStudio() {
           </div>
           <div className="x1-ls-quality-row"><div><ShieldCheck size={17}/><span><strong>Industry relevance</strong><small>Content and image direction follow the selected industry</small></span><b>READY</b></div><div><Globe2 size={17}/><span><strong>SEO / AEO / GEO</strong><small>Metadata, FAQ, schema, and local-market fields</small></span><b>CONFIGURABLE</b></div><div><Rocket size={17}/><span><strong>Launch handoff</strong><small>Exportable blueprint for provisioning workflows</small></span><b>DRAFT</b></div></div>
         </section>
+      </div>}
+
+      {activeTab==='templates' && <div className="x1-ls-tab-content">
+        <div className="x1-ls-section-heading"><div><span className="x1-ls-step">TEMPLATE ENGINE / DIGITAL DOMINATION</span><h2>Industry template library</h2><p>{templateRecords.length} saved website design templates across {DESIGN_TEMPLATE_CATALOG.industries.length} industries. Select a starting point, then customize it in the builder.</p></div><span className="x1-ls-chip">Catalog snapshot · ${DESIGN_TEMPLATE_CATALOG.version || "v1"}</span></div>
+        <div className="x1-ls-template-filters"><label className="x1-ls-search"><Search size={14}/><input value={templateQuery} onChange={e=>{setTemplateQuery(e.target.value);setTemplateLimit(48)}} placeholder="Search templates, industries, layouts, headlines"/></label><select value={templateIndustryFilter} onChange={e=>{setTemplateIndustryFilter(e.target.value);setTemplateLimit(48)}}><option value="all">All industries ({DESIGN_TEMPLATE_CATALOG.industries.length})</option>{DESIGN_TEMPLATE_CATALOG.industries.map(i=><option key={i} value={i}>{i.replace(/-/g,' ').replace(/\\b\\w/g,c=>c.toUpperCase())}</option>)}</select><span className="x1-ls-chip">{filteredTemplates.length} matches</span></div>
+        <div className="x1-ls-template-grid">{filteredTemplates.slice(0,templateLimit).map(t=><article className="x1-ls-template-card" key={t.id}><div className="x1-ls-template-preview" style={{background:t.background||'#0b1426',color:t.ink||'#fff'}}><span style={{background:t.accent||'#176bff'}}/ ><small>{t.industry}</small><strong>{t.headline||t.name}</strong><p>{t.subheadline||t.featureCopy||'Industry-ready design direction and page structure.'}</p><div><i style={{background:t.accent||'#176bff'}}/><i/><i/></div></div><div className="x1-ls-template-meta"><div><strong>{t.name}</strong><small>{t.id} · {(t.layout||t.family||'flexible').replace(/-/g,' ')}</small></div><button onClick={()=>applyTemplate(t)}><Check size={14}/> Use template</button></div></article>)}</div>
+        {filteredTemplates.length>templateLimit&&<button className="x1-ls-load-more" onClick={()=>setTemplateLimit(v=>v+48)}>Load next 48 templates ({filteredTemplates.length-templateLimit} remaining)</button>}
+        <div className="x1-ls-note">The catalog is a static snapshot from the connected Digital Domination DesignTemplate records. New or changed templates in that system need a catalog refresh before they appear here. Applying a template sets the initial copy direction and accent; continue editing pages, sections, and brand settings before export.</div>
       </div>}
 
       {activeTab==='brand' && <div className="x1-ls-tab-content">
