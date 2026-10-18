@@ -8,7 +8,7 @@ test('no Base44 runtime references in deployed application',()=>{
 });
 test('all approved V2 variants and call buttons remain',()=>{
  const s=read('../src/V2Experience.jsx');
- for(const term of ["id:'a'","id:'b'","id:'c'","CALL EDEN","CALL NOW","INTELLIGENCE IN MOTION"])assert.ok(s.includes(term),term);
+ for(const term of ["variant==='a'?<Hero", "variant==='b'?<LongPage", "<EdenPage", "CALL EDEN", "CALL NOW", "INTELLIGENCE IN MOTION"])assert.ok(s.includes(term),term);
  assert.ok(s.includes("tel:+18665711174"));assert.ok(s.includes("tel:+17722090266"));
 });
 test('X1 frontend does not contain dead old marketing href paths',()=>{
