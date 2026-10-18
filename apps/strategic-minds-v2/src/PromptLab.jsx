@@ -1,36 +1,51 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowUpRight, Bot, BookOpen, GitBranch, Layers3, ShieldCheck, Sparkles, Workflow } from 'lucide-react';
+import React,{useEffect,useMemo,useState} from 'react';
+import {Link} from 'react-router-dom';
+import {ArrowRight,BookOpen,CheckCircle2,ClipboardCheck,Code2,Columns3,FilePlus2,FlaskConical,Layers3,LockKeyhole,Plus,RefreshCw,Save,ShieldCheck,Sparkles,Workflow} from 'lucide-react';
+import './PromptLab.css';
 
-const modules = [
-  { icon: Sparkles, title: 'Prompt Studio', detail: 'Author, refine, version and evaluate production prompts.' },
-  { icon: BookOpen, title: 'Prompt Library', detail: 'Organize reusable prompts, templates and domain playbooks.' },
-  { icon: Workflow, title: 'Prompt Chains', detail: 'Compose multi-step workflows with explicit inputs and outputs.' },
-  { icon: ShieldCheck, title: 'Hallucination & QA Lab', detail: 'Run structured checks for unsupported claims and output quality.' },
-  { icon: Layers3, title: 'Model Comparison', detail: 'Compare candidate outputs against a consistent evaluation rubric.' },
-  { icon: Bot, title: 'Agent Workbench', detail: 'Design specialized prompt-engineering and validation agents.' },
-];
-
-export default function PromptLab() {
-  const externalUrl = import.meta.env.VITE_PROMPT_LAB_URL;
-  return <main style={{minHeight:'100dvh',background:'#050d18',color:'#edf7ff',fontFamily:"Inter,'Segoe UI',Arial,sans-serif"}}>
-    <header style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,padding:'18px clamp(18px,3vw,42px)',borderBottom:'1px solid #17334a',background:'#071625'}}>
-      <div><div style={{fontSize:11,letterSpacing:'.14em',color:'#7edfff',fontWeight:800}}>STRATEGIC MINDS AI / X1 ADMIN</div><h1 style={{margin:'8px 0 0',fontSize:24}}>Prompt Lab</h1></div>
-      <nav style={{display:'flex',gap:10,flexWrap:'wrap'}}><Link to="/admin/visual-editor" style={linkStyle}>Visual Editor</Link><Link to="/admin/launch-studio" style={linkStyle}>Launch Studio</Link></nav>
-    </header>
-    {externalUrl ? <iframe title="Prompt Lab workspace" src={externalUrl} style={{display:'block',width:'100%',height:'calc(100dvh - 84px)',border:0,background:'#fff'}} allow="clipboard-read; clipboard-write" /> :
-    <section style={{maxWidth:1160,margin:'0 auto',padding:'clamp(22px,4vw,48px)'}}>
-      <div style={{border:'1px solid #174766',borderRadius:18,padding:24,background:'radial-gradient(ellipse at 90% 0%,rgba(18,117,174,.2),transparent 55%),#08192a',marginBottom:22}}>
-        <div style={{display:'inline-flex',alignItems:'center',gap:8,fontSize:10,letterSpacing:'.12em',fontWeight:800,color:'#8affbf',border:'1px solid #235b4c',padding:'7px 10px',borderRadius:30}}><ShieldCheck size={14}/> X1 ADMIN WORKSPACE</div>
-        <h2 style={{fontSize:'clamp(24px,4vw,38px)',lineHeight:1.12,margin:'18px 0 12px'}}>Prompt engineering, simulation and quality control.</h2>
-        <p style={{maxWidth:760,color:'#a8bfd2',lineHeight:1.7,marginBottom:18}}>The Prompt Lab entry is now registered in the X1 admin. The original public Base44 source still needs its runtime and data services migrated before its full interactive workspace can safely run inside X1.</p>
-        <a href="https://github.com/Strategic-Minds-AI/x1-prompt-lab" target="_blank" rel="noreferrer" style={{...linkStyle,display:'inline-flex',alignItems:'center',gap:8}}>Open source repository <ArrowUpRight size={15}/></a>
-      </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',gap:14}}>
-        {modules.map(({icon:Icon,title,detail})=><article key={title} style={{border:'1px solid #18364d',borderRadius:14,padding:20,background:'linear-gradient(150deg,#0b2033,#071321)'}}><div style={{width:38,height:38,borderRadius:11,display:'grid',placeItems:'center',background:'#0d344b',color:'#72ddff',marginBottom:16}}><Icon size={19}/></div><h3 style={{fontSize:15,margin:'0 0 9px'}}>{title}</h3><p style={{fontSize:12,lineHeight:1.7,color:'#9bb2c7',margin:0}}>{detail}</p></article>)}
-      </div>
-      <div style={{marginTop:20,padding:'15px 17px',borderLeft:'3px solid #49d5ff',background:'#091b2b',color:'#9eb9ce',fontSize:12,lineHeight:1.7}}>Runtime connection is intentionally not faked. Set <code>VITE_PROMPT_LAB_URL</code> to the authenticated Prompt Lab deployment to embed it temporarily; full X1-native integration requires migrating Base44 functions, entities, auth and secrets.</div>
-    </section>}
-  </main>;
+async function readResponse(response){
+ let data={};try{data=await response.json();}catch{}
+ if(!response.ok)throw new Error(String(data.reason||data.message||data.status||response.status).replaceAll('_',' ').slice(0,180));
+ return data;
 }
-const linkStyle = {color:'#b9eaff',fontSize:12,fontWeight:750,textDecoration:'none',padding:'9px 12px',border:'1px solid #24506c',borderRadius:9,background:'#0a2236'};
+function lintPrompt(text){
+ const s=String(text||'');
+ const checks=[
+  {label:'Clear task or role',pass:/(you are|act as|task:|objective:|your job)/i.test(s)},
+  {label:'Output format specified',pass:/(output format|return as|respond in|json|markdown|bullet list|schema)/i.test(s)},
+  {label:'Constraints or acceptance criteria',pass:/(must|should|never|constraints|acceptance criteria|requirements|do not)/i.test(s)},
+  {label:'Substantive instructions',pass:s.trim().length>=160},
+  {label:'No empty template variables',pass:!(/\{\{\s*\}\}|\$\{\s*\}/.test(s))}
+ ];
+ return checks;
+}
+const categories=['general','engineering','frontend','backend','security','data-intelligence','marketing','seo-analytics','agent-workflows'];
+export default function PromptLab(){
+ const [config,setConfig]=useState(null),[configLoading,setConfigLoading]=useState(true);
+ const [email,setEmail]=useState(''),[otp,setOtp]=useState(''),[authStep,setAuthStep]=useState('email'),[token,setToken]=useState('');
+ const [assets,setAssets]=useState([]),[selectedId,setSelectedId]=useState(''),[title,setTitle]=useState(''),[promptText,setPromptText]=useState(''),[category,setCategory]=useState('general');
+ const [busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[notice,setNotice]=useState(''),[noticeTone,setNoticeTone]=useState('info'),[lintRun,setLintRun]=useState(false);
+ const signedIn=authStep==='authenticated'&&Boolean(token);
+ async function loadConfig(){setConfigLoading(true);try{setConfig(await (await fetch('/api/x1/agent-config',{cache:'no-store'})).json());}catch{setConfig({status:'UNBOUND',reason:'CONFIG_UNAVAILABLE'});}finally{setConfigLoading(false);}}
+ useEffect(()=>{loadConfig();},[]);
+ async function loadAssets(authToken=token){if(!authToken)return;setLoading(true);try{const data=await readResponse(await fetch('/api/x1/prompt-assets',{headers:{authorization:'Bearer '+authToken},cache:'no-store'}));setAssets(Array.isArray(data.items)?data.items:[]);setNotice('Prompt library synced to the X1 staging database.');setNoticeTone('success');}catch(e){setNotice('Library sync blocked: '+e.message);setNoticeTone('error');}finally{setLoading(false);}}
+ async function requestCode(e){e.preventDefault();setBusy(true);setNotice('');try{if(config?.status!=='STAGING_CONFIGURED_NOT_AUTHENTICATED')throw new Error(config?.reason||'Staging authentication is not configured');await readResponse(await fetch(config.authOrigin+'/auth/v1/otp',{method:'POST',headers:{apikey:config.publicAnonKey,'content-type':'application/json'},body:JSON.stringify({email:email.trim(),create_user:false})}));setAuthStep('otp');setNotice('One-time code requested for an existing account.');setNoticeTone('success');}catch(err){setNotice('Sign-in blocked: '+err.message);setNoticeTone('error');}finally{setBusy(false);}}
+ async function verifyCode(e){e.preventDefault();setBusy(true);setNotice('');try{const data=await readResponse(await fetch(config.authOrigin+'/auth/v1/verify',{method:'POST',headers:{apikey:config.publicAnonKey,'content-type':'application/json'},body:JSON.stringify({email:email.trim(),token:otp.trim(),type:'email'})}));if(!data.access_token)throw new Error('No access token returned');setToken(data.access_token);setAuthStep('authenticated');await loadAssets(data.access_token);}catch(err){setNotice('Verification blocked: '+err.message);setNoticeTone('error');}finally{setBusy(false);}}
+ function newPrompt(){setSelectedId('');setTitle('');setPromptText('');setCategory('general');setLintRun(false);setNotice('New prompt draft. Save it to persist it to X1 staging.');setNoticeTone('info');}
+ function editPrompt(asset){setSelectedId(asset.asset_id);setTitle(asset.title||'');setPromptText(asset.prompt_text||'');setCategory(asset.category||'general');setLintRun(false);setNotice('Editing saved version '+asset.version+'. Saving creates the next version.');setNoticeTone('info');}
+ async function savePrompt(e){e.preventDefault();if(title.trim().length<3||!promptText.trim())return;setBusy(true);setNotice('');try{const body={title,promptText,category,metadata:{editor:'x1-native-prompt-lab',lint:lintRun?lintPrompt(promptText).map(c=>({label:c.label,pass:c.pass})):[]}};if(selectedId)body.assetId=selectedId;const data=await readResponse(await fetch('/api/x1/prompt-assets',{method:selectedId?'PATCH':'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify(body)}));const asset=data.item;setAssets(prev=>selectedId?prev.map(x=>x.asset_id===asset.asset_id?asset:x):[asset,...prev]);setSelectedId(asset.asset_id);setTitle(asset.title);setPromptText(asset.prompt_text);setCategory(asset.category);setNotice(selectedId?'New prompt version saved.':'Prompt saved to X1 staging.');setNoticeTone('success');}catch(err){setNotice('Save failed: '+err.message);setNoticeTone('error');}finally{setBusy(false);}}
+ const checks=useMemo(()=>lintPrompt(promptText),[promptText]);
+ const passed=checks.filter(c=>c.pass).length;
+ return <main className="x1-promptlab">
+  <header className="x1-promptlab-header"><div><div className="x1-promptlab-kicker">STRATEGIC MINDS AI / X1 ENGINEERING</div><h1><Sparkles size={24}/> Prompt Lab</h1><p>Versioned prompts, reusable patterns and quality checks on X1-native services.</p></div><nav><Link to="/admin/visual-editor"><Layers3 size={14}/> Visual Editor</Link><Link to="/admin/coding-kanban"><Columns3 size={14}/> Coding Kanban</Link><Link to="/admin/launch-studio"><Workflow size={14}/> Launch Studio</Link></nav></header>
+  <section className="x1-promptlab-banner"><div className="x1-promptlab-banner-icon"><LockKeyhole size={18}/></div><div><strong>Independent runtime · tenant-scoped storage</strong><p>Prompt assets are stored in the X1 staging database. No Base44 runtime, authentication, database or functions are used. Model execution remains separately gated until a provider connection is verified.</p></div><span className={'x1-promptlab-connection '+(signedIn?'on':'off')}>{signedIn?'CONNECTED':'AUTH REQUIRED'}</span></section>
+  {!signedIn?<section className="x1-promptlab-auth"><div className="x1-promptlab-auth-icon"><ShieldCheck size={22}/></div><h2>Sign in to your X1 prompt library</h2><p>Existing accounts only. Your saved prompts are scoped to your active X1 tenant.</p>{configLoading?<p>Checking staging configuration…</p>:config?.status!=='STAGING_CONFIGURED_NOT_AUTHENTICATED'?<div className="x1-promptlab-error">X1 staging auth is not configured: {config?.reason||config?.status||'unknown status'}. No external backend fallback will be used.</div>:authStep==='email'?<form onSubmit={requestCode}><label htmlFor="prompt-email">Account email</label><input id="prompt-email" type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com"/><button type="submit" disabled={busy}>{busy?'Requesting…':'Send sign-in code'} <ArrowRight size={14}/></button></form>:<form onSubmit={verifyCode}><label htmlFor="prompt-otp">One-time code</label><input id="prompt-otp" required inputMode="numeric" autoComplete="one-time-code" value={otp} onChange={e=>setOtp(e.target.value)} placeholder="Enter the email code"/><button type="submit" disabled={busy}>{busy?'Verifying…':'Verify and open library'} <ArrowRight size={14}/></button><button type="button" className="x1-promptlab-plain" onClick={()=>setAuthStep('email')}>Change email</button></form>}</section>:<div className="x1-promptlab-layout">
+   <aside className="x1-promptlab-library"><div className="x1-promptlab-library-head"><div><span className="x1-promptlab-kicker">YOUR ASSETS</span><h2><BookOpen size={17}/> Prompt Library</h2></div><button onClick={()=>loadAssets()} disabled={loading} title="Refresh library"><RefreshCw size={15}/></button></div><button className="x1-promptlab-new" onClick={newPrompt}><FilePlus2 size={15}/> New prompt</button><div className="x1-promptlab-assets">{assets.length?assets.map(asset=><button key={asset.asset_id} className={'x1-promptlab-asset '+(selectedId===asset.asset_id?'active':'')} onClick={()=>editPrompt(asset)}><span>{asset.title}</span><small>{asset.category} · v{asset.version}</small><em>{asset.status}</em></button>):<div className="x1-promptlab-empty"><BookOpen size={22}/><span>No saved prompts yet.</span><small>Create your first prompt to populate this tenant's library.</small></div>}</div><div className="x1-promptlab-library-foot">{assets.length} saved asset{assets.length===1?'':'s'} · X1 staging</div></aside>
+   <section className="x1-promptlab-workspace"><div className="x1-promptlab-workspace-head"><div><div className="x1-promptlab-kicker">PROMPT WORKBENCH</div><h2>{selectedId?'Edit prompt version':'Draft a new prompt'}</h2><p>Edits are versioned and persisted server-side.</p></div><span className="x1-promptlab-storage"><CheckCircle2 size={13}/> AUTHENTICATED STORAGE</span></div>
+    <form className="x1-promptlab-editor" onSubmit={savePrompt}><div className="x1-promptlab-fields"><div><label htmlFor="prompt-title">Prompt name</label><input id="prompt-title" required minLength={3} maxLength={120} value={title} onChange={e=>{setTitle(e.target.value);setLintRun(false);}} placeholder="e.g. Emergency service landing-page strategist"/></div><div><label htmlFor="prompt-category">Category</label><select id="prompt-category" value={category} onChange={e=>setCategory(e.target.value)}>{categories.map(c=><option key={c} value={c}>{c.replaceAll('-',' ')}</option>)}</select></div></div><label htmlFor="prompt-body">Instructions</label><textarea id="prompt-body" required maxLength={16000} value={promptText} onChange={e=>{setPromptText(e.target.value);setLintRun(false);}} placeholder={'Define the agent role, inputs, required research, constraints, output schema and validation steps…'} rows={14}/><div className="x1-promptlab-editor-footer"><span>{promptText.length.toLocaleString()} / 16,000 characters</span><div><button type="button" className="x1-promptlab-secondary" onClick={()=>{setLintRun(true);setNotice('Static prompt checks completed. This is not a model simulation.');setNoticeTone('info');}}><ClipboardCheck size={14}/> Run static checks</button><button type="submit" className="x1-promptlab-save" disabled={busy||title.trim().length<3||!promptText.trim()}><Save size={14}/>{busy?'Saving…':'Save version'}</button></div></div></form>
+    <section className="x1-promptlab-checks"><div className="x1-promptlab-check-head"><div><h3><FlaskConical size={16}/> Prompt hygiene checks</h3><p>Deterministic checks only; model-based evaluation is not yet connected.</p></div><span className={lintRun&&passed===checks.length?'pass':''}>{lintRun?passed+'/'+checks.length+' passed':'NOT RUN'}</span></div>{checks.map(c=><div key={c.label} className={'x1-promptlab-check '+(lintRun?(c.pass?'ok':'warn'):'')}><span>{lintRun?(c.pass?'✓':'!'):'•'}</span>{c.label}</div>)}</section>
+   </section>
+  </div>}
+  {notice&&<div className={'x1-promptlab-notice '+noticeTone} role="status">{notice}</div>}
+ </main>;
+}
