@@ -35,7 +35,7 @@ export async function runPromptAssets(req,res,{env=process.env,fetchImpl=fetch}=
   if(!binding.ok)return respond(res,503,{status:"UNBOUND",reason:binding.code});
   const operator=await readStagingOperatorStatus(req,binding,fetchImpl);
   if(!["OWNER","ADMIN","BUILDER"].includes(operator.role))throw new PublicApiError(403,"PROMPT_WRITE_ROLE_REQUIRED");
-  const table=urlFor(binding,{select:"asset_id,title,prompt_text,category,status,version,metadata,created_by,created_at,updated_at",tenant_id:"eq."+operator.tenant_id});
+  const table=urlFor(binding,{select:"asset_id,title,prompt_text,category,status,version,metadata,created_at,updated_at"});
   if(req.method==="GET"){
    const rows=await rest(binding,fetchImpl,urlFor(binding,{select:"asset_id,title,prompt_text,category,status,version,metadata,created_at,updated_at",tenant_id:"eq."+operator.tenant_id,order:"updated_at.desc",limit:"100"}));
    return respond(res,200,{status:"PROMPT_LIBRARY_READ_VERIFIED",tenant_id:operator.tenant_id,items:rows});
