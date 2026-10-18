@@ -10,6 +10,7 @@ import VisualStudio from './VisualStudio.jsx';
 import X1AgentConsole from './X1AgentConsole.jsx';
 import LaunchStudio from './LaunchStudio.jsx';
 import PromptLab from './PromptLab.jsx';
+import CodingKanban from './CodingKanban.jsx';
 
 function NavigateToHash() {
  const location=useLocation();
@@ -31,6 +32,7 @@ function App(){
    <Route path="/portal/demo" element={<ClientPortalExperience demo/>}/>
    <Route path="/admin/studio" element={<VisualStudio/>}/>
    <Route path="/admin/visual-editor" element={<VisualStudio/>}/>
+   <Route path="/admin/coding-kanban" element={<CodingKanban/>}/>
    <Route path="/admin/prompt-lab" element={<PromptLab/>}/>
    <Route path="/admin/agent" element={<X1AgentConsole/>}/>
    <Route path="/admin/launch-studio" element={<LaunchStudio/>}/>
