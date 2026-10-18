@@ -6,7 +6,7 @@
   "description": "Standalone Strategic Minds AI cinematic V2 frontend; Base44-free X1 Operating System app.",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "vite build",
+    "build": "vite build && node scripts/prepare-seo.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test tests/*.test.mjs",
     "check": "npm run test && npm run build",
