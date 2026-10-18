@@ -28,7 +28,7 @@ test('preview stays noindex while approved production marketing routes may be in
  const destinations=v.rewrites.map(x=>x.source);
  assert.ok(destinations.includes('/pricing')&&destinations.includes('/portal')&&destinations.includes('/portal/:path*'));
  assert.match(r('../index.html'),/noindex,nofollow,noarchive/);
- assert.match(r('../public/robots.txt'),/Disallow: \\//);
+ assert.ok(r('../public/robots.txt').includes('Disallow: /'));
  const adminHeaders=v.headers.find(h=>h.source==='/admin/:path*')?.headers||[];
  const portalHeaders=v.headers.find(h=>h.source==='/portal/:path*')?.headers||[];
  assert.ok(adminHeaders.some(h=>h.key==='X-Robots-Tag'&&h.value.includes('noindex')));
