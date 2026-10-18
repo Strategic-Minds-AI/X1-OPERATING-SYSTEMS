@@ -33,8 +33,8 @@ try{
    check((await page.$eval('h1',el=>el.textContent)).includes(route.heading),route.path+' heading');
    check(await page.evaluate(()=>document.querySelectorAll('iframe').length===0),route.path+' no embedded external app');
    check(await page.evaluate(()=>document.querySelector('meta[name="robots"]')?.content.includes('noindex')),route.path+' preview noindex');
-   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
-   check(overflow<=1,route.path+' '+viewport.name+' no horizontal overflow: '+overflow);
+   const layout=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth-window.innerWidth,offenders:[...document.querySelectorAll('body *')].map(el=>{const r=el.getBoundingClientRect();return {tag:el.tagName,cls:typeof el.className==='string'?el.className:'',text:(el.innerText||'').slice(0,30),left:Math.round(r.left),right:Math.round(r.right),width:Math.round(r.width)}}).filter(x=>x.right>innerWidth+1||x.left< -1).slice(0,15)}));
+   check(layout.overflow<=1,route.path+' '+viewport.name+' no horizontal overflow: '+JSON.stringify(layout));
    check(await page.evaluate(()=>document.body.textContent.includes('Sign in')||document.body.textContent.includes('Sign-in')),route.path+' requires X1 auth before showing tenant data');
    await page.screenshot({path:resolve(screens,route.path.includes('prompt')?'prompt-'+viewport.name+'.png':'kanban-'+viewport.name+'.png')});
    process.stdout.write('PASS_'+route.path.replaceAll('/','_').toUpperCase()+'_'+viewport.name.toUpperCase()+'\n');
