@@ -5,7 +5,7 @@ import {STAGING_ORIGIN} from "../server/x1-staging.mjs";
 
 const USER_ID="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const TENANT_ID="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
-const ENV={VERCEL_ENV:"preview",SUPABASE_URL:STAGING_ORIGIN,SUPABASE_ANON_KEY:"public-test-key",SUPABASE_SERVICE_ROLE_KEY:"server-test-key",X1_GPT_CHAT_ENABLED:"true",X1_LLM_PROVIDER:"ollama",OLLAMA_TUNNEL_URL:"https://smai-example.ngrok-free.app",OLLAMA_TUNNEL_TOKEN:"synthetic-test-bearer-only",X1_OLLAMA_MODEL:"llama3.1:8b"};
+const ENV={VERCEL_ENV:"development",X1_RUNTIME_LOCAL:"true",X1_OLLAMA_LOCAL_URL:"http://127.0.0.1:11434",SUPABASE_URL:STAGING_ORIGIN,SUPABASE_ANON_KEY:"public-test-key",SUPABASE_SERVICE_ROLE_KEY:"server-test-key",X1_GPT_CHAT_ENABLED:"true",X1_LLM_PROVIDER:"ollama",X1_OLLAMA_MODEL:"llama3.1:8b"};
 function sink(){return {statusCode:200,headers:{},body:null,setHeader(k,v){this.headers[k]=v;},end(s){try{this.body=JSON.parse(s);}catch{this.body=null;}}};}
 function reply(data,status=200){return new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json"} });}
 function fakeFetch(calls=[],modelText=JSON.stringify({simulated_output:"Here is a synthetic draft.",self_review:{status:"REVISE",score:72,hallucination_risks:["One assumption needs confirmation."],unsupported_claims:["No sources were supplied."],rubric_results:["Output format followed"],recommendations:["Cite verified sources."],confidence_note:"Model self-review only."}})){
@@ -22,8 +22,8 @@ function fakeFetch(calls=[],modelText=JSON.stringify({simulated_output:"Here is 
     const row=body[0];return reply([{run_id:"cccccccc-cccc-4ccc-8ccc-cccccccccccc",created_at:"2026-10-18T13:00:00Z",model:row.model}],201);
    }
   }
-  if(u.origin==="https://smai-example.ngrok-free.app"&&u.pathname==="/api/chat"&&method==="POST"){
-   assert.equal(options.headers.authorization,"Bearer synthetic-test-bearer-only");
+  if(u.origin==="http://127.0.0.1:11434"&&u.pathname==="/api/chat"&&method==="POST"){
+   assert.equal(options.headers.authorization,undefined);
    const payload=body;
    assert.equal(payload.stream,false);
    assert.equal(payload.messages[0].role,"system");
@@ -38,7 +38,7 @@ test("Prompt evaluation rejects invalid prompt and test input sizes",()=>{
  assert.equal(validateEvaluationInput({promptText:"Act as a safe assistant and produce a structured output.".repeat(20),testInput:""}).ok,false);
  assert.equal(validateEvaluationInput({promptText:"Act as a safe assistant and produce a structured output.".repeat(20),testInput:"synthetic case"}).ok,true);
 });
-test("Prompt evaluation executes only through configured Ollama tunnel and persists its self-review",async()=>{
+test("Prompt evaluation executes only through configured loopback Ollama and persists its self-review",async()=>{
  const calls=[],res=sink();
  await runPromptEvaluation({method:"POST",headers:{authorization:"Bearer x1-user-token"},body:{title:"Synthetic intake prompt",promptText:"Act as a careful intake assistant. Return a structured summary and clearly label unknown facts.",testInput:"Synthetic caller says their air conditioner stopped working in summer. Ask only for missing details."}},res,{env:ENV,fetchImpl:fakeFetch(calls)});
  assert.equal(res.statusCode,200);
@@ -57,6 +57,13 @@ test("Prompt evaluation fails closed when model execution is disabled",async()=>
  await runPromptEvaluation({method:"POST",headers:{authorization:"Bearer x1-user-token"},body:{title:"Synthetic intake prompt",promptText:"Act as a careful intake assistant. Return a structured summary and clearly label unknown facts.",testInput:"Synthetic test input."}},res,{env:{...ENV,X1_GPT_CHAT_ENABLED:"false"},fetchImpl:fakeFetch(calls)});
  assert.equal(res.statusCode,503);
  assert.equal(res.body.reason,"MODEL_EXECUTION_DISABLED");
+ assert.equal(calls.some(c=>c.url.includes("/api/chat")),false);
+});
+test("Prompt evaluation refuses remote Ollama tunnels from hosted preview",async()=>{
+ const calls=[],res=sink();
+ await runPromptEvaluation({method:"POST",headers:{authorization:"Bearer x1-user-token"},body:{title:"Synthetic intake prompt",promptText:"Act as a careful intake assistant. Return a structured summary and clearly label unknown facts.",testInput:"Synthetic test input."}},res,{env:{...ENV,VERCEL_ENV:"preview"},fetchImpl:fakeFetch(calls)});
+ assert.equal(res.statusCode,503);
+ assert.equal(res.body.reason,"OLLAMA_LOCAL_RUNTIME_REQUIRED");
  assert.equal(calls.some(c=>c.url.includes("/api/chat")),false);
 });
 test("Prompt evaluation refuses production database bindings",async()=>{
