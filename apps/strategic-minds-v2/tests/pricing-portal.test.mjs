@@ -23,11 +23,18 @@ test('portal demo has explicit privacy gate, synthetic-only examples and local-o
  assert.ok(p.includes("setApprovals(s=>({...s,[id]:value}))"));
  assert.doesNotMatch(p,/\bfetch\(|\blocalStorage|\bsessionStorage|\baxios\.|window\.location\.assign/);
 });
-test('preview disallows indexing on all routes including /pricing and /portal',()=>{
+test('preview stays noindex while approved production marketing routes may be indexed',()=>{
  const v=JSON.parse(r('../vercel.json'));
  const destinations=v.rewrites.map(x=>x.source);
  assert.ok(destinations.includes('/pricing')&&destinations.includes('/portal')&&destinations.includes('/portal/:path*'));
- assert.ok(v.headers[0].headers.some(h=>h.key==='X-Robots-Tag'&&h.value.includes('noindex')));
+ assert.match(r('../index.html'),/noindex,nofollow,noarchive/);
+ assert.ok(r('../public/robots.txt').includes('Disallow: /'));
+ const adminHeaders=v.headers.find(h=>h.source==='/admin/:path*')?.headers||[];
+ const portalHeaders=v.headers.find(h=>h.source==='/portal/:path*')?.headers||[];
+ assert.ok(adminHeaders.some(h=>h.key==='X-Robots-Tag'&&h.value.includes('noindex')));
+ assert.ok(portalHeaders.some(h=>h.key==='X-Robots-Tag'&&h.value.includes('noindex')));
+ assert.match(r('../scripts/prepare-seo.mjs'),/VERCEL_ENV !== 'production'/);
+ assert.match(r('../scripts/prepare-seo.mjs'),/X1_SEO_APPROVED_DOMAINS/);
 });
 test('commerce pages retain reduced-motion rules and source assets',()=>{
  const css=r('../src/CommercePortal.css');
