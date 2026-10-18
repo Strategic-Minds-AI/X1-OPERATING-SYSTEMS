@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { prepareSeoBuild, renderRobots, renderSitemap, resolveSeoPolicy } from '../scripts/prepare-seo.mjs';
 
-const approvedEnv = { X1_SEO_INDEXING_ENABLED: 'true', VITE_CANONICAL_SITE_URL: 'https://www.strategicmindsai.com', X1_SEO_APPROVED_DOMAINS: 'www.strategicmindsai.com' };
+const approvedEnv = { VERCEL_ENV: 'production', X1_SEO_INDEXING_ENABLED: 'true', VITE_CANONICAL_SITE_URL: 'https://www.strategicmindsai.com', X1_SEO_APPROVED_DOMAINS: 'www.strategicmindsai.com' };
 
 test('SEO stays noindex by default even with a canonical URL', () => {
  const policy = resolveSeoPolicy({ VITE_CANONICAL_SITE_URL: 'https://www.strategicmindsai.com', X1_SEO_APPROVED_DOMAINS: 'www.strategicmindsai.com' });
@@ -18,6 +18,8 @@ test('indexing requires both an explicit flag and exact approved HTTPS hostname'
  assert.equal(resolveSeoPolicy(approvedEnv).indexable, true);
  assert.equal(resolveSeoPolicy({ ...approvedEnv, VITE_CANONICAL_SITE_URL: 'https://preview.vercel.app' }).indexable, false);
  assert.equal(resolveSeoPolicy({ ...approvedEnv, X1_SEO_INDEXING_ENABLED: 'false' }).indexable, false);
+ assert.equal(resolveSeoPolicy({ ...approvedEnv, VERCEL_ENV: 'preview' }).indexable, false);
+ assert.equal(resolveSeoPolicy({ ...approvedEnv, VITE_CANONICAL_SITE_URL: 'https://www.strategicmindsai.com:444' }).indexable, false);
  assert.equal(resolveSeoPolicy({ ...approvedEnv, VITE_CANONICAL_SITE_URL: 'http://www.strategicmindsai.com' }).indexable, false);
 });
 
