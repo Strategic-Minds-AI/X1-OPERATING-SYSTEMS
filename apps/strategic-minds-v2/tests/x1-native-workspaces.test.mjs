@@ -43,11 +43,13 @@ function fakeX1(fetchLog=[]){
   if(u.pathname==="/rest/v1/x1_tenants")return reply([{tenant_id:TENANT_ID,status:"ACTIVE"}]);
   if(u.pathname==="/rest/v1/x1_work_queue"&&(options.method||"GET")==="GET"){
    if(u.searchParams.get("select")==="status")return reply([{status:"COMPLETED"}]);
-   return reply([{task_id:"task-existing",work_packet_id:"wp-existing",mission_id:"mission-existing",status:"PENDING",action_class:"NON_PRODUCTION_MUTATION",priority:100,attempts:0,payload:{title:"Existing task",description:"Task description",category:"engineering",acceptanceCriteria:[]},created_at:"2026-10-18T12:00:00Z",updated_at:"2026-10-18T12:00:00Z"}]);
+   if(u.searchParams.has("work_id"))return reply(createdRow?[createdRow]:[]);
+   return reply([{work_id:"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",task_id:"task-existing",work_packet_id:"wp-existing",mission_id:"mission-existing",status:"PENDING",action_class:"NON_PRODUCTION_MUTATION",priority:100,attempts:0,payload:{title:"Existing task",description:"Task description",category:"engineering",acceptanceCriteria:[]},created_at:"2026-10-18T12:00:00Z",updated_at:"2026-10-18T12:00:00Z"}]);
   }
-  if(u.pathname==="/rest/v1/x1_work_queue"&&options.method==="POST"){
-   const row=options.body[0];
-   return reply([{...row,task_id:row.task_id,work_packet_id:row.work_packet_id,mission_id:row.mission_id,status:"PENDING",attempts:0,created_at:"2026-10-18T12:00:00Z",updated_at:"2026-10-18T12:00:00Z"}],201);
+  if(u.pathname==="/rest/v1/rpc/x1_enqueue_work"&&options.method==="POST"){
+   const row=options.body.p_work;
+   createdRow={...row,work_id:"dddddddd-dddd-4ddd-8ddd-dddddddddddd",status:"PENDING",attempts:0,last_error_code:null,created_at:"2026-10-18T12:00:00Z",updated_at:"2026-10-18T12:00:00Z"};
+   return reply(createdRow.work_id);
   }
   if(u.pathname==="/rest/v1/x1_prompt_assets"&&options.method==="GET")return reply([]);
   if(u.pathname==="/rest/v1/x1_prompt_assets"&&options.method==="POST"){
@@ -65,15 +67,17 @@ test("coding Kanban GET reads only authenticated tenant tasks from staging",asyn
  assert.equal(sink.body.items[0].title,"Existing task");
  assert.ok(calls.every(c=>new URL(c.url).origin===STAGING_ORIGIN));
 });
-test("coding Kanban POST creates only a pending non-production task",async()=>{
+test("coding Kanban POST uses the canonical enqueue RPC for non-production tasks",async()=>{
  const calls=[];const sink=responseSink();
  await runWorkItems({method:"POST",headers:{authorization:"Bearer valid-test-token"},body:{title:"Implement prompt chaining",description:"Add a native chain editor with explicit inputs, outputs and evaluation criteria.",category:"engineering",acceptanceCriteria:["Tests pass"]}},sink,{env:STAGING_ENV,fetchImpl:fakeX1(calls)});
  assert.equal(sink.statusCode,201);
  assert.equal(sink.body.status,"QUEUED_NOT_EXECUTED");
- const insert=calls.find(c=>c.url.includes("/rest/v1/x1_work_queue")&&c.method==="POST").body[0];
- assert.equal(insert.status,"PENDING");
- assert.equal(insert.action_class,"NON_PRODUCTION_MUTATION");
- assert.match(insert.idempotency_key,/^[0-9a-f]{64}$/);
+ const enqueue=calls.find(c=>c.url.includes("/rest/v1/rpc/x1_enqueue_work")&&c.method==="POST");
+ const work=enqueue.body.p_work;
+ assert.equal(sink.body.item.status,"PENDING");
+ assert.equal(work.action_class,"NON_PRODUCTION_MUTATION");
+ assert.match(work.idempotency_key,/^[0-9a-f]{64}$/);
+ assert.equal(calls.some(c=>c.url.includes("/rest/v1/x1_work_queue")&&c.method==="POST"),false);
  assert.equal(sink.body.dispatch,"NOT_DISPATCHED_BY_API");
 });
 test("coding Kanban fails closed outside Vercel preview/development",async()=>{
