@@ -123,3 +123,61 @@ Target architecture remains Base44-independent. This audit records source and re
 ## Evidence limits
 
 This document records repository metadata and source files inspected on 2026-10-18. It does not certify live provider credentials, production runtime state, visual parity, deployment behavior, authenticated API flows, or production readiness.
+
+## Canonical X1 system lineup and authority alignment — 2026-10-18
+
+This section resolves the role ambiguity found during the donor audit. It is an architecture decision proposal grounded in the inspected repository evidence; it is **not** proof that every component has been migrated, deployed, or validated. The single-authority rules below must be reflected in the actual API, database, queue, deployment configuration, and agent instructions before the ecosystem can be called fully aligned.
+
+### Canonical authority model
+
+| Layer | Canonical system / repository | Official responsibility | Must not become |
+|---|---|---|---|
+| Product and operator experience | `Strategic-Minds-AI/X1-OPERATING-SYSTEMS` | Main site, admin and client portal integration, Prompt Lab/Visual Editor/Launch Studio entry points, operational visibility, approval UX, native X1 API integration | A second independent scheduler or competing source of truth |
+| Control-plane authority | `Strategic-Minds-AI/x1-ai-hub-control-plane` | **Only authority** for durable work state, task admission, queue/leases, orchestration decisions, approval enforcement, idempotency, budgets, policy decisions and execution receipts | A UI-only dashboard; or a second implementation duplicated in Prompt Lab, Launch Studio, or a donor app |
+| Operator runtime/product shell | `Strategic-Minds-AI/x1-ai-hub` | X1 AI Hub product/operator experience and integration surface, subject to a code-level audit and explicit API contract | A separate queue/lease authority or an alternate control plane |
+| Prompt engineering workbench | `Strategic-Minds-AI/x1-prompt-lab` | Prompt authoring, versioning, refinement, simulation/evaluation, prompt chains, model selection, reusable libraries, agent/task specifications, and human approval UI | The control-plane authority, source of truth for execution state, or an unrestricted shell/production executor |
+| Website factory and release workflow | Website Launch Engine + native Launch Studio in X1 | Site intake, market/industry selection, brand/design system, SitePack generation, preview, QA, approval, release request and deployment evidence | An independent queue, unapproved DNS/domain changes, or treating a local preview as a deployed site |
+| Visual source kits | `digital-dominance-universal-template` and `universal-auto-builder-digital-dominance-template` | Reusable visual components, design tokens, layouts, renderers, schemas and synthetic preview fixtures imported after provenance review | Production services, trusted content, or proof of live website creation |
+| Agent execution | `x1-ai-hub-swarm-runtime` | Execute leased, authorized work packets; enforce worker timeouts, budgets, retries, health and receipts | Scheduling its own work independently of the control plane; production mutation until release gates pass |
+| Browser execution | `XTREME-SYSTEMS/cloudbrowser-control` browser engine, behind a native X1 adapter | Isolated, authenticated browser sessions for approved navigation, observation, screenshots, and gated actions | A second control plane, public unauthenticated browser endpoint, or client-side credential store |
+| Communications delivery | `XTREME-SYSTEMS/xtreme-communications-os` business logic selectively migrated behind native X1 adapter | Provider-neutral SMS/email/voice/campaign/webhook execution with consent, approvals, idempotency, quotas and delivery receipts | A second scheduler/outbox authority, direct uncontrolled outreach, or Base44 as a production dependency |
+| Data and audit foundation | Supabase, under X1 server-side policy | Durable tenant-scoped operational data, registries, approved schemas, RLS, audit/receipt persistence and retrieval | Client-side service-role access or multiple competing records for the same job |
+| Hosting and release | Vercel for web UI/preview; Railway for isolated workers/services; GitHub for versioned source and CI | Build, preview, deploy and rollback with explicit source SHA and release evidence | A host/provider silently deciding policy or authorizing production release |
+| Local model execution | Ollama through an authenticated, server-side X1 model adapter | Local/private model inference and bounded specialist tasks | Direct browser exposure, unrestricted production authority, or an unverified tunnel treated as live |
+| Evidence archive and external connectors | Google Drive / approved MCP connectors | Approved artifact archive, evidence references and controlled external integrations | The primary task queue or an alternate system of record |
+
+### The control-plane distinction
+
+The audit found a real naming/authority collision, not just a misunderstanding by the Prompt Lab agent:
+
+1. The Prompt Lab repository's README identifies it as a **Base44 project**. It does not establish Prompt Lab as the platform control plane. Its agent can propose orchestration plans, but those plans must be submitted to X1's authenticated, policy-enforcing APIs.
+2. The private repository `Strategic-Minds-AI/x1-ai-hub-control-plane` describes itself as the authority for deterministic orchestration, leases, approvals, queues and receipts. Its README is currently only a short role declaration, so its implementation and production status still require a code/configuration audit.
+3. `Strategic-Minds-AI/X1-OPERATING-SYSTEMS` also contains native X1 APIs/admin workbench work and has been described in integration materials as the control plane. To avoid two sources of truth, treat it as the **operator/product integration layer** and make `x1-ai-hub-control-plane` the **single backend authority**—unless a code-level comparison proves that the dedicated repository is only a duplicate/obsolete scaffold. That comparison is a required decision gate, not something this README inspection can settle.
+4. `Strategic-Minds-AI/x1-ai-hub` describes itself as the product and operator runtime. Its exact boundary with `X1-OPERATING-SYSTEMS` is also underdocumented. It must be consolidated as a shell/module or assigned a sharply bounded product role; it must not operate an independent queue.
+5. The swarm runtime README itself names `x1-ai-hub-control-plane` as the upstream authority, supporting the single-control-plane boundary. The inspected worker gateway is currently read-only and rejects mutations.
+
+### Non-negotiable integration contract
+
+- **One job ID, one authoritative state machine, one queue/lease/idempotency authority, one approval ledger, one execution receipt contract.** Other apps may mirror state for display but cannot independently authorize or re-dispatch work.
+- Every job carries tenant, actor, origin app, requested capability, policy/approval reference, budget/deadline, idempotency key, source/version pins, and immutable result/evidence references.
+- Prompt Lab and specialist agents generate structured proposals. The control plane validates identity, policy, permissions, budget, approval and lease before any worker acts.
+- Launch Studio produces a versioned SitePack and preview request; it does not claim deployment until Vercel/Railway/DNS evidence and independent release checks exist.
+- Browser and communications are isolated adapters. Credentials stay server-side; every call is tenant-scoped and audited. Browser navigation must enforce SSRF policy. Communications remain sandbox-only until consent, opt-out, signature verification, rate/spend limits and provider sandbox tests pass.
+- Supabase is accessed through server-side services and RLS-scoped contracts. No Base44 service-role dependency may be introduced into native X1 production.
+- GitHub is the source/version authority; a README, prompt, agent assertion, green local test, or preview URL is not deployment evidence. Release records pin the exact commit and independent validation receipt.
+- Ollama is a model backend, not an authorization boundary. Its X1 adapter must be authenticated and bounded.
+- Production release, public indexing, DNS changes, paid provisioning, live customer messaging, destructive browser actions and production mutations require explicit policy approval and verified receipts.
+
+### Blocking alignment findings
+
+1. **Control-plane implementation overlap:** compare `x1-ai-hub-control-plane`, `X1-OPERATING-SYSTEMS` and `x1-ai-hub` code, schemas, deployment targets and credentials. Choose one runtime authority; retire or demote duplicates. Do not infer implementation completeness from short READMEs.
+2. **Prompt Lab Base44 coupling:** migrate its needed business logic and APIs into native X1 services; keep Base44 out of production dependencies. Audit and remove any arbitrary shell/command execution bridge before exposing Prompt Lab to workers.
+3. **Website Launch Engine identity:** reconcile `x1-launch-engine` versus the source-truth reference to `website-launch-engine`; do not link a Vercel production project until the canonical repo and release branch are verified.
+4. **Repository visibility / credential hygiene:** cloud browser and communications donor repos report public visibility while containing security-sensitive integration patterns; inspect for active or historical secrets, rotate any potentially exposed credentials, and verify intended visibility before further proprietary code is added. Never print secret values into this audit.
+5. **Environment proof:** PR #25 remains draft/unmerged; preview APIs previously returned `503 NON_STAGING_TARGET`. Fix the preview's staging-only Supabase binding, pass authenticated API smoke tests, and obtain independent validation before merge.
+6. **Release posture:** production indexing remains blocked by `robots.txt` disallow-all and missing `sitemap.xml`; preserve that gate until canonical host, SEO and production verification are reviewed.
+
+### Alignment verdict
+
+**Architecture roles can now be stated consistently, but the ecosystem is not yet proven fully aligned operationally.** The recommended canonical model is: X1 operator/product layer → one dedicated X1 control-plane authority → one durable queue/lease contract → guarded swarm workers and isolated browser/communications adapters, with Prompt Lab as a workbench and Launch Studio as a site-factory workflow. The remaining blockers above require code/configuration evidence and independent tests before this is marked production-aligned.
+
