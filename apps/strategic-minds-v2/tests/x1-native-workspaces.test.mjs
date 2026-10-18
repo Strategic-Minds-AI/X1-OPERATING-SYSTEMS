@@ -75,7 +75,7 @@ test("coding Kanban POST uses the canonical enqueue RPC for non-production tasks
  const enqueue=calls.find(c=>c.url.includes("/rest/v1/rpc/x1_enqueue_work")&&c.method==="POST");
  const work=enqueue.body.p_work;
  assert.equal(sink.body.item.status,"PENDING");
- assert.equal(work.action_class,"NON_PRODUCTION_MUTATION");
+ assert.equal(work.action_class,"DRAFT");
  assert.match(work.idempotency_key,/^[0-9a-f]{64}$/);
  assert.equal(calls.some(c=>c.url.includes("/rest/v1/x1_work_queue")&&c.method==="POST"),false);
  assert.equal(sink.body.dispatch,"NOT_DISPATCHED_BY_API");
