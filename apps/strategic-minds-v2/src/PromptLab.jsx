@@ -24,7 +24,8 @@ export default function PromptLab(){
  const [config,setConfig]=useState(null),[configLoading,setConfigLoading]=useState(true);
  const [email,setEmail]=useState(''),[otp,setOtp]=useState(''),[authStep,setAuthStep]=useState('email'),[token,setToken]=useState('');
  const [assets,setAssets]=useState([]),[selectedId,setSelectedId]=useState(''),[title,setTitle]=useState(''),[promptText,setPromptText]=useState(''),[category,setCategory]=useState('general');
- const [busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[notice,setNotice]=useState(''),[noticeTone,setNoticeTone]=useState('info'),[lintRun,setLintRun]=useState(false);\n const [testInput,setTestInput]=useState('Use this synthetic example to test the prompt. Do not contact anyone or perform external actions.'),[evaluation,setEvaluation]=useState(null),[evaluating,setEvaluating]=useState(false);
+ const [busy,setBusy]=useState(false),[loading,setLoading]=useState(false),[notice,setNotice]=useState(''),[noticeTone,setNoticeTone]=useState('info'),[lintRun,setLintRun]=useState(false);
+ const [testInput,setTestInput]=useState('Use this synthetic example to test the prompt. Do not contact anyone or perform external actions.'),[evaluation,setEvaluation]=useState(null),[evaluating,setEvaluating]=useState(false);
  const signedIn=authStep==='authenticated'&&Boolean(token);
  async function loadConfig(){setConfigLoading(true);try{setConfig(await (await fetch('/api/x1/agent-config',{cache:'no-store'})).json());}catch{setConfig({status:'UNBOUND',reason:'CONFIG_UNAVAILABLE'});}finally{setConfigLoading(false);}}
  useEffect(()=>{loadConfig();},[]);
