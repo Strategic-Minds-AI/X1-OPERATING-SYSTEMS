@@ -1,0 +1,54 @@
+name: X1 Strategic Minds V2 Frontend QA
+on:
+  push:
+    branches:
+      - feature/smai-v2-approved-frontend-import-20261011
+      - feature/x1-v2-pricing-client-portal-20261011
+      - feature/x1-visual-studio-multisandbox-20261011
+      - main
+      - feature/x1-hardening-gates-20261011
+    paths:
+      - "apps/strategic-minds-v2/**"
+      - "ops/security/**"
+      - ".github/workflows/x1-smai-v2-frontend.yml"
+  pull_request:
+    paths:
+      - "apps/strategic-minds-v2/**"
+      - "ops/security/**"
+      - ".github/workflows/x1-smai-v2-frontend.yml"
+permissions:
+  contents: read
+jobs:
+  frontend-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/strategic-minds-v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/strategic-minds-v2/package-lock.json
+      - name: Install pinned dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Unit checks and production build
+        run: npm run check
+      - name: Full desktop/mobile Chromium click-through
+        run: npm run test:e2e
+      - name: Pricing and portal conversion journey
+        run: npm run test:commerce
+      - name: Homepage-authoritative brand and Studio interaction QA
+        run: npm run test:studio
+      - name: X1 admin chat desktop/mobile and bidirectional sync journey
+        run: npm run test:agent
+      - name: Retain browser screenshots for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: x1-smai-v2-desktop-mobile
+          path: apps/strategic-minds-v2/qa_e2e/screens/
+          retention-days: 14
+          if-no-files-found: warn
