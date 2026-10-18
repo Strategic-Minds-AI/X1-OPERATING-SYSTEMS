@@ -102,6 +102,9 @@ export async function runWorkItems(req, res, { env = process.env, fetchImpl = fe
     const binding = resolveStagingBinding(env);
     if (!binding.ok) return respond(res, 503, { status: "UNBOUND", reason: binding.code });
     const operator = await resolveOperator(req, binding, fetchImpl);
+    if (req.method === "POST" && !["OWNER", "ADMIN", "BUILDER"].includes(operator.role)) {
+      throw new PublicApiError(403, "WORK_ITEM_WRITE_ROLE_REQUIRED");
+    }
     if (req.method === "GET") {
       const rows = await requestJson(fetchImpl, urlFor(binding.origin, "/rest/v1/x1_work_queue", {
         select: "work_id,task_id,work_packet_id,mission_id,status,action_class,priority,attempts,last_error_code,created_at,updated_at,payload",
