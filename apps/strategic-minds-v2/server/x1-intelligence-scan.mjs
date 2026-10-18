@@ -129,7 +129,7 @@ export async function runIntelligenceScan(req, res, { env = process.env, fetchIm
     }));
     const stored = await rest(binding, fetchImpl, tableUrl(binding, {
       on_conflict: "tenant_id,source,external_id",
-      select: "ingest_id,source,external_id,title,url,stars,last_seen_at"
+      select: "ingest_id,source,external_id,title,summary,url,stars,forks,open_issues,language,last_seen_at"
     }), { method: "POST", body: records, prefer: "resolution=merge-duplicates,return=representation" });
     return respond(res, 200, {
       status: "INTELLIGENCE_SCAN_COMPLETE",
