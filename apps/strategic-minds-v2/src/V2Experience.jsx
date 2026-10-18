@@ -8,8 +8,6 @@ const ASSETS='/v2-assets/';
 const EDEN_PHONE='tel:+18665711174';
 const BUSINESS_PHONE='tel:+17722090266';
 const EMAIL='jeremy@strategicmindsai.com';
-// A/B/C are operator preview variants, not a verified live experiment.
-const VARIANTS=[{id:'a',label:'MYSTERY'},{id:'b',label:'EXPLORE'},{id:'c',label:'EDEN'}];
 const SERVICES=[
  {icon:BrainCircuit,title:'AI Strategy & Consulting',copy:'Practical AI opportunities, systems architecture and implementation plans.'},
  {icon:Workflow,title:'Custom AI Systems & Automation',copy:'Connect people, processes and tools in intelligent workflows.'},
@@ -31,7 +29,7 @@ function eventV2(action,variant,extra={}) {
 }
 function PreviewHead({variant}) {
  useEffect(()=>{
-  const title=document.title; document.title='Strategic Minds AI | V2 Design Preview '+variant.toUpperCase();
+  const title=document.title; document.title='Strategic Minds AI | Intelligence in Motion';
   const prior=document.querySelector('meta[name="robots"]');
   const meta=prior||document.createElement('meta'); const old=prior?.content;
   if(!prior){meta.name='robots';document.head.appendChild(meta);}
@@ -206,10 +204,5 @@ export default function V2Experience(){
    <main id="main-content">{variant==='a'?<Hero variant="a"/>:variant==='b'?<LongPage variant="b"/>:<EdenPage variant="c"/>}</main>
    <footer className="v2-footer"><strong>STRATEGIC MINDS AI</strong><span>INTELLIGENCE IN MOTION</span><Link to="/pricing">PRICING</Link><Link to="/portal">CLIENT PORTAL</Link>
     <p><a href={'mailto:'+EMAIL}>{EMAIL}</a> · <a href={BUSINESS_PHONE}>(772) 209-0266</a></p></footer>
-   <nav className="v2-variant-switch" aria-label="Design preview selection">
-    <span>NOINDEX · DESIGN PREVIEW</span><div>{VARIANTS.map(x=><Link key={x.id}
-      to={'/v2/'+x.id} title={x.label} aria-current={variant===x.id?'page':undefined}
-      onClick={()=>eventV2('switch_preview',variant,{next:x.id})} className={variant===x.id?'selected':''}>{x.id.toUpperCase()}</Link>)}</div>
-   </nav>
  </div>;
 }
