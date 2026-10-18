@@ -45,7 +45,7 @@ try{
  check([200,304].includes(studio.status()),'visual editor HTTP '+studio.status());
  await page.waitForSelector('.x1-studio .x1-chat',{timeout:10000});
  await page.waitForSelector('.x1-studio .x1-editor',{timeout:10000});
- const layout=await page.evaluate(()=>({chat:document.querySelector('.x1-studio .x1-chat').getBoundingClientRect(),editor:document.querySelector('.x1-studio .x1-editor').getBoundingClientRect()}));
+ const layout=await page.evaluate(()=>{const c=document.querySelector('.x1-studio .x1-chat').getBoundingClientRect(),e=document.querySelector('.x1-studio .x1-editor').getBoundingClientRect();return {chat:{left:c.left,right:c.right,width:c.width},editor:{left:e.left,right:e.right,width:e.width}};});
  check(layout.chat.right<=layout.editor.left+4,'Visual Editor chat is left of editor canvas: '+JSON.stringify({chat:{left:Math.round(layout.chat.left),right:Math.round(layout.chat.right),width:Math.round(layout.chat.width)},editor:{left:Math.round(layout.editor.left),right:Math.round(layout.editor.right),width:Math.round(layout.editor.width)}}));
  check(errors.length===0,'no uncaught browser errors: '+errors.join('; '));
  process.stdout.write('PASS_VISUAL_EDITOR_CHAT_LEFT_EDITOR_RIGHT\nPASS_NO_UNCAUGHT_BROWSER_ERRORS\n');
