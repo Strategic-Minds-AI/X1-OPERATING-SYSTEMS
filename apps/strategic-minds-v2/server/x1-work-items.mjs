@@ -137,14 +137,14 @@ export async function runWorkItems(req, res, { env = process.env, fetchImpl = fe
       source: "x1-coding-kanban",
       approvalRequired: false,
       releaseGate: "independent-validation",
-      dispatchPolicy: "worker-must-claim-through-existing-lease-protocol"
+      dispatchPolicy: "draft-awaiting-authorized-build-worker"
     };
     const work = {
       tenant_id: operator.tenantId,
       work_packet_id: workPacketId,
       task_id: taskId,
       requested_by: operator.user.id,
-      action_class: "NON_PRODUCTION_MUTATION",
+      action_class: "DRAFT",
       required_capabilities: ["agent:smai:05-build", "agent:smai:07-qa"],
       payload,
       idempotency_key: idempotencyKey,
@@ -171,7 +171,7 @@ export async function runWorkItems(req, res, { env = process.env, fetchImpl = fe
       status: "QUEUED_NOT_EXECUTED",
       item: safeRow(rows[0]),
       dispatch: "NOT_DISPATCHED_BY_API",
-      message: "Saved through the canonical X1 enqueue RPC. A verified worker must claim it; no build or deployment is claimed."
+      message: "Saved as a DRAFT through the canonical X1 enqueue RPC. Current workers are read-only; no build or deployment is claimed."
     });
   } catch (err) {
     if (err instanceof PublicApiError) return respond(res, err.status, { status: "BLOCKED", reason: err.code });
