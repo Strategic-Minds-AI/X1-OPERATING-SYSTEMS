@@ -67,11 +67,11 @@ test("coding Kanban GET reads only authenticated tenant tasks from staging",asyn
  assert.equal(sink.body.items[0].title,"Existing task");
  assert.ok(calls.every(c=>new URL(c.url).origin===STAGING_ORIGIN));
 });
-test("coding Kanban POST uses the canonical enqueue RPC for non-production tasks",async()=>{
+test("coding Kanban POST uses the canonical enqueue RPC for a DRAFT task",async()=>{
  const calls=[];const sink=responseSink();
  await runWorkItems({method:"POST",headers:{authorization:"Bearer valid-test-token"},body:{title:"Implement prompt chaining",description:"Add a native chain editor with explicit inputs, outputs and evaluation criteria.",category:"engineering",acceptanceCriteria:["Tests pass"]}},sink,{env:STAGING_ENV,fetchImpl:fakeX1(calls)});
  assert.equal(sink.statusCode,201);
- assert.equal(sink.body.status,"QUEUED_NOT_EXECUTED");
+ assert.equal(sink.body.status,"DRAFT_SAVED_NOT_EXECUTED");
  const enqueue=calls.find(c=>c.url.includes("/rest/v1/rpc/x1_enqueue_work")&&c.method==="POST");
  const work=enqueue.body.p_work;
  assert.equal(sink.body.item.status,"PENDING");
