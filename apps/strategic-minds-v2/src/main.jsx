@@ -8,6 +8,7 @@ import ClientPortalExperience from './ClientPortalExperience.jsx';
 import './global.css';
 import VisualStudio from './VisualStudio.jsx';
 import X1AgentConsole from './X1AgentConsole.jsx';
+import LaunchStudio from './LaunchStudio.jsx';
 
 function NavigateToHash() {
  const location=useLocation();
@@ -21,15 +22,16 @@ function NavigateToHash() {
 }
 function App(){
  return <BrowserRouter><NavigateToHash/><Routes>
-   <Route path="/" element={<Navigate to="/v2/a" replace/>}/>
-   <Route path="/v2" element={<Navigate to="/v2/a" replace/>}/>
+   <Route path="/" element={<Navigate to="/v2/b" replace/>}/>
+   <Route path="/v2" element={<Navigate to="/v2/b" replace/>}/>
    <Route path="/v2/:variant" element={<V2Experience/>}/>
    <Route path="/pricing" element={<PricingExperience/>}/>
    <Route path="/portal" element={<ClientPortalExperience/>}/>
    <Route path="/portal/demo" element={<ClientPortalExperience demo/>}/>
    <Route path="/admin/studio" element={<VisualStudio/>}/>
    <Route path="/admin/agent" element={<X1AgentConsole/>}/>
-   <Route path="*" element={<Navigate to="/v2/a" replace/>}/>
+   <Route path="/admin/launch-studio" element={<LaunchStudio/>}/>
+   <Route path="*" element={<Navigate to="/v2/b" replace/>}/>
  </Routes></BrowserRouter>;
 }
 createRoot(document.getElementById('root')).render(<React.StrictMode><App/></React.StrictMode>);

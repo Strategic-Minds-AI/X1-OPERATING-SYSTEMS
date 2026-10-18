@@ -13,7 +13,7 @@ const DEFAULT_MESSAGE={
 const QUICK=[
  'Give me the latest X1 queue and worker health.',
  'Summarize recent verified agent outputs and required approvals.',
- 'Draft a staging-safe website build work packet for independent QA.'
+ 'Build preview: Make a premium epoxy garage floor instant estimate website for Pompano Beach FL'
 ];
 const asError=async(r)=>{
   let body={};try{body=await r.json();}catch{}
@@ -45,6 +45,8 @@ export default function X1AgentConsole(){
  const bottom=useRef(null);
  const configured=config?.status==='STAGING_CONFIGURED_NOT_AUTHENTICATED';
  const gpt=config?.gpt==='CONFIGURED_NOT_VALIDATED';
+ const ollamaReady=config?.ollama==='CONFIGURED_NOT_VALIDATED';
+ const dispatchReady=config?.dispatch==='PREVIEW_BUILD_READY';
  const hdr=(key)=>({authorization:'Bearer '+token,...(tenantId?{'X-X1-Tenant-ID':tenantId}:{}) ,[key]:'application/json'});
  async function reloadConfig(){
    setLoadingConfig(true);
@@ -126,14 +128,16 @@ export default function X1AgentConsole(){
        {role:'assistant',content:data.response,status:data.mode,model:data.model,receipt:data.receipt}]);
      setEvents(data.events||[]);setQueue(data.queue);setSyncState('SYNC_WRITTEN');
      await loadSessions();
-     setNotice(data.mode==='GPT_PREVIEW_DRAFT'
+     setNotice(data.dispatch==='QUEUED_NOT_DEPLOYED'
+       ? 'Your X1 preview work was queued and verified. It is NOT deployed yet. Watch the proof dashboard for an independently validated URL.'
+       : ['GPT_PREVIEW_DRAFT','OLLAMA_PREVIEW_DRAFT'].includes(data.mode)
        ? 'GPT response and tenant transcript persisted. No execution was started.'
        : 'X1 status response and conversation persisted. GPT provider is not enabled.');
    }catch(err){
      setMessages(prev=>[...prev,{role:'assistant',
        content:'Request not confirmed. '+err.message+'. Use Sync now before retrying to avoid duplicate model charges.',
        status:'BLOCKED'}]);
-     setNotice('No job dispatched. Confirm conversation state before retrying.');
+     setNotice('No unverified deployment was claimed. Sync the conversation before retrying.');
    }finally{setBusy(false);}
  }
  function logout(){
@@ -149,13 +153,13 @@ export default function X1AgentConsole(){
  return <div className="x1-studio x1-agent-app">
   <a className="x1-skip" href="#x1-agent-main">Skip to X1 assistant</a>
   <aside className="x1-rail" aria-label="X1 navigation">
-   <Link to="/v2/a" className="x1-smark" aria-label="Strategic Minds AI home"><img src="/v2-assets/silver-emblem.png" alt=""/></Link>
+   <Link to="/v2/b" className="x1-smark" aria-label="Strategic Minds AI home"><img src="/v2-assets/silver-emblem.png" alt=""/></Link>
    <div className="x1-rail-divider"/>
    <Link to="/admin/studio" title="Visual Studio"><SquareTerminal size={21}/></Link>
    <Link className="active" to="/admin/agent" title="X1 Command Agent"><MessageCircle size={21}/></Link>
    <Link to="/portal/demo" title="Client portal"><Workflow size={20}/></Link>
    <div className="x1-rail-spacer"/>
-   <Link to="/v2/a" title="Return home"><ArrowLeft size={21}/></Link>
+   <Link to="/v2/b" title="Return home"><ArrowLeft size={21}/></Link>
   </aside>
   <main className="x1-studio-main" id="x1-agent-main">
    <header className="x1-topbar">
@@ -165,7 +169,7 @@ export default function X1AgentConsole(){
    <div className="x1-agent-intro"><div><span><Sparkles size={15}/> ADMIN INTELLIGENCE · TENANT BOUND</span><h1>Command X1. <em>See the evidence.</em></h1><p>Talk to the GPT-powered admin assistant and inspect verified X1 activity. Execution is approval-gated. Your ChatGPT.com private conversations are not imported.</p></div><div className="x1-agent-intro-mark"><img src="/v2-assets/silver-emblem.png" alt="Strategic Minds AI emblem"/></div></div>
    <div className="x1-agent-layout">
     <section className="x1-agent-chat" aria-label="Admin chat">
-     <div className="x1-agent-section-head"><div><MessageCircle size={19}/><strong>X1 CONVERSATION</strong></div><Tag good={gpt}>{gpt?'GPT GATEWAY CONFIGURED':'X1 SYNC-ONLY MODE'}</Tag></div>
+     <div className="x1-agent-section-head"><div><MessageCircle size={19}/><strong>X1 CONVERSATION</strong></div><Tag good={gpt||ollamaReady}>{ollamaReady?'OLLAMA TUNNEL CONFIGURED':gpt?'GPT GATEWAY CONFIGURED':'X1 SYNC-ONLY MODE'}</Tag></div>
      {!configured?<div className="x1-agent-auth"><LockKeyhole size={28}/><h2>Staging bridge not configured</h2><p>Admin commands are locked until the Vercel Preview service has verified X1 Staging bindings. This is not a production failure.</p><code>{loadingConfig?'CHECKING...':config?.reason||'MISSING_STAGING_BINDING'}</code><button type="button" onClick={reloadConfig} disabled={loadingConfig}><RefreshCw size={16}/> RETRY CONNECTION CHECK</button></div>
      :!token?<div className="x1-agent-auth"><KeyRound size={28}/><h2>Operator sign-in</h2><p>Use an existing X1 Staging Supabase Auth account with an active OWNER or ADMIN membership. No accounts or permissions are provisioned here.</p><form onSubmit={phase==='code'?verifyCode:sendCode}>
        <label htmlFor="x1-agent-email">Admin email</label><input id="x1-agent-email" type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} required/>
@@ -178,7 +182,7 @@ export default function X1AgentConsole(){
        </article>)}
        <div ref={bottom}/>
       </div><div className="x1-agent-suggestions">{QUICK.map(s=><button type="button" key={s} onClick={()=>setDraft(s)}>{s}<ChevronRight size={14}/></button>)}</div>
-      <form onSubmit={send} className="x1-agent-composer"><label htmlFor="x1-agent-prompt">Message your X1 agent</label><textarea id="x1-agent-prompt" rows={3} maxLength={2400} value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send(e);}}} placeholder="Ask for status, request a plan, or draft a work packet..."/><div><span><ShieldCheck size={14}/> DRAFT / READ-ONLY · NO AUTO-EXECUTION</span><button type="submit" disabled={busy||!draft.trim()}><Send size={16}/> {busy?'SYNCING':'SEND'}</button></div></form>
+      <form onSubmit={send} className="x1-agent-composer"><label htmlFor="x1-agent-prompt">Message your X1 agent</label><textarea id="x1-agent-prompt" rows={3} maxLength={2400} value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send(e);}}} placeholder="Ask for status or type: Build preview: a premium epoxy flooring website..."/><div><span><ShieldCheck size={14}/> {dispatchReady?'PREVIEW BUILDS ENABLED · NO PRODUCTION RELEASE':'DRAFT / READ-ONLY · NO AUTO-EXECUTION'}</span><button type="submit" disabled={busy||!draft.trim()}><Send size={16}/> {busy?'SYNCING':'SEND'}</button></div></form>
      </>}
      {notice&&<p className="x1-agent-notice" role="status">{notice}</p>}
     </section>

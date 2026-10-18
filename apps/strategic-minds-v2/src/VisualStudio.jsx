@@ -102,13 +102,14 @@ export default function VisualStudio(){
     <div className="x1-rail-divider"/>
     <Link to="/portal/demo" title="Client dashboard"><LayoutDashboard size={19}/></Link>
     <button className="active" title="Visual Studio" aria-label="Visual Studio"><Layers3 size={21}/></button>
+    <Link to="/admin/launch-studio" title="Launch Studio" aria-label="Launch Studio"><Sparkles size={20}/></Link>
     <button onClick={()=>setPanel('sandboxes')} title="Sandboxes" aria-label="Sandboxes"><Box size={20}/></button>
     <Link to="/admin/agent" title="X1 GPT Command Agent" aria-label="X1 GPT Command Agent"><MessageCircle size={20}/></Link>
     <button onClick={()=>setPanel('agents')} title="Agent roster" aria-label="Agent roster"><Workflow size={20}/></button>
     <button onClick={()=>setPanel('activity')} title="Local draft queue" aria-label="Local draft queue"><Activity size={20}/></button>
     <div className="x1-rail-spacer"/>
     <Link to="/pricing" title="Pricing"><BookOpen size={19}/></Link>
-    <Link to="/v2/a" title="Public homepage"><Globe2 size={19}/></Link>
+    <Link to="/v2/b" title="Public homepage"><Globe2 size={19}/></Link>
   </aside>
   <div className="x1-studio-main">
    <header className="x1-topbar"><div className="x1-top-left"><div className="x1-studio-label">STRATEGIC MINDS <b>AI</b> <span>/</span> X1 VISUAL STUDIO</div><Bell tone="green"><StatusDot tone="green"/> NONPRODUCTION LAB</Bell></div><div className="x1-top-actions"><button onClick={()=>setNight(v=>!v)} className={'x1-night'+(night?' selected':'')}><Sparkles size={15}/>{night?'NIGHT PLAN PREPARED':'OVERNIGHT MODE'}</button><button className="x1-save" onClick={exportPatch}><FileDiff size={15}/> EXPORT PATCH</button></div></header>
