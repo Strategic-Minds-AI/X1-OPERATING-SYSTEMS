@@ -102,10 +102,9 @@ export async function runWorkItems(req, res, { env = process.env, fetchImpl = fe
     const binding = resolveStagingBinding(env);
     if (!binding.ok) return respond(res, 503, { status: "UNBOUND", reason: binding.code });
     const operator = await resolveOperator(req, binding, fetchImpl);
-    const table = binding.origin + "/rest/v1/x1_work_queue";
     if (req.method === "GET") {
       const rows = await requestJson(fetchImpl, urlFor(binding.origin, "/rest/v1/x1_work_queue", {
-        select: "task_id,work_packet_id,mission_id,status,action_class,priority,attempts,last_error_code,created_at,updated_at,payload",
+        select: "work_id,task_id,work_packet_id,mission_id,status,action_class,priority,attempts,last_error_code,created_at,updated_at,payload",
         tenant_id: "eq." + operator.tenantId,
         order: "updated_at.desc",
         limit: String(MAX_ITEMS)
@@ -137,32 +136,39 @@ export async function runWorkItems(req, res, { env = process.env, fetchImpl = fe
       releaseGate: "independent-validation",
       dispatchPolicy: "worker-must-claim-through-existing-lease-protocol"
     };
-    const inserted = await requestJson(fetchImpl, table, {
+    const work = {
+      tenant_id: operator.tenantId,
+      work_packet_id: workPacketId,
+      task_id: taskId,
+      requested_by: operator.user.id,
+      action_class: "NON_PRODUCTION_MUTATION",
+      required_capabilities: ["agent:smai:05-build", "agent:smai:07-qa"],
+      payload,
+      idempotency_key: idempotencyKey,
+      priority: 100,
+      max_attempts: 3,
+      mission_id: missionId
+    };
+    // Use the canonical X1 enqueue RPC so idempotency and queue invariants are preserved.
+    const workId = await requestJson(fetchImpl, binding.origin + "/rest/v1/rpc/x1_enqueue_work", {
       method: "POST",
       key: binding.serviceKey,
       bearer: binding.serviceKey,
-      prefer: "return=representation",
-      body: [{
-        tenant_id: operator.tenantId,
-        work_packet_id: workPacketId,
-        task_id: taskId,
-        requested_by: operator.user.id,
-        action_class: "NON_PRODUCTION_MUTATION",
-        required_capabilities: ["agent:smai:05-build", "agent:smai:07-qa"],
-        payload,
-        idempotency_key: idempotencyKey,
-        status: "PENDING",
-        priority: 100,
-        max_attempts: 3,
-        mission_id: missionId
-      }]
+      body: { p_work: work }
     });
-    if (!Array.isArray(inserted) || inserted.length !== 1) throw new PublicApiError(503, "STAGING_INSERT_UNVERIFIED");
+    if (typeof workId !== "string" || !UUID.test(workId)) throw new PublicApiError(503, "STAGING_ENQUEUE_UNVERIFIED");
+    const rows = await requestJson(fetchImpl, urlFor(binding.origin, "/rest/v1/x1_work_queue", {
+      select: "work_id,task_id,work_packet_id,mission_id,status,action_class,priority,attempts,last_error_code,created_at,updated_at,payload",
+      work_id: "eq." + workId,
+      tenant_id: "eq." + operator.tenantId,
+      limit: "1"
+    }), { key: binding.serviceKey, bearer: binding.serviceKey });
+    if (!Array.isArray(rows) || rows.length !== 1) throw new PublicApiError(503, "STAGING_ENQUEUE_READBACK_UNVERIFIED");
     return respond(res, 201, {
       status: "QUEUED_NOT_EXECUTED",
-      item: safeRow(inserted[0]),
+      item: safeRow(rows[0]),
       dispatch: "NOT_DISPATCHED_BY_API",
-      message: "Saved to the staging queue. A verified worker must claim it; no build or deployment is claimed."
+      message: "Saved through the canonical X1 enqueue RPC. A verified worker must claim it; no build or deployment is claimed."
     });
   } catch (err) {
     if (err instanceof PublicApiError) return respond(res, err.status, { status: "BLOCKED", reason: err.code });
