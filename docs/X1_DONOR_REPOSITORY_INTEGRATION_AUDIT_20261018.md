@@ -181,3 +181,28 @@ The audit found a real naming/authority collision, not just a misunderstanding b
 
 **Architecture roles can now be stated consistently, but the ecosystem is not yet proven fully aligned operationally.** The recommended canonical model is: X1 operator/product layer → one dedicated X1 control-plane authority → one durable queue/lease contract → guarded swarm workers and isolated browser/communications adapters, with Prompt Lab as a workbench and Launch Studio as a site-factory workflow. The remaining blockers above require code/configuration evidence and independent tests before this is marked production-aligned.
 
+## Code-level authority reconciliation — supersedes any earlier assumption that the dedicated control-plane repo is already operational
+
+A direct tree/source inspection was performed after the initial lineup section. This evidence changes the operational conclusion:
+
+- `Strategic-Minds-AI/x1-ai-hub-control-plane` default-branch tree currently contains only `README.md` at the inspected ref. The README declares intended authority, but the repository tree does not expose an implementation of its claimed queue/lease/approval API.
+- `Strategic-Minds-AI/x1-ai-hub` default-branch tree currently contains only `README.md` at the inspected ref. It is a role declaration/stub at that ref, not a demonstrated operator runtime.
+- `Strategic-Minds-AI/X1-OPERATING-SYSTEMS` contains concrete API/server code in `apps/strategic-minds-v2/server/`, including `x1-staging.mjs`, `x1-work-items.mjs`, and `x1-worker-status.mjs`. The work-items adapter uses the `x1_enqueue_work` RPC and reads `x1_work_queue`; worker status calls `x1_worker_status_summary`. These routes explicitly bind to the approved staging project and fail closed outside preview/development. The checked-in code is real implementation, but the environment binding and live authenticated behavior remain unverified.
+- `Strategic-Minds-AI/x1-ai-hub-swarm-runtime` implements a `SupabaseWorkQueue` client that calls `x1_lease_next_work` and `x1_finish_work`, and a `ControlPlaneClient` that posts to `X1_CONTROL_PLANE_URL/api/authorize` unless a functions endpoint is explicitly configured. Its inspected worker handler rejects every action other than `READ_ONLY`.
+- The currently inspected X1 Operating Systems API tree does not contain an `/api/authorize` endpoint matching that default worker contract. Therefore the worker/control-plane URL integration is **not proven compatible**. Do not enable or scale workers based on matching names or configuration assumptions.
+- Prompt Lab's `base44/agents/autonomous_agent.jsonc` explicitly describes itself as the "autonomous operator of the entire platform", claims ownership of the bootstrap roadmap, and can invoke `bridgeCommand`. The inspected `bridgeCommand` creates a pending LocalCommand from a user-supplied command string; `bridgePoll` returns that string to a registered bridge. This is a legacy execution path that needs isolation/allowlisting and must not be treated as the authoritative X1 execution plane. The Prompt Lab repository's root package is Base44-bound.
+
+### Revised operational authority decision
+
+Until a dedicated control-plane service is implemented and passes contract tests, the only evidenced queue contract is the Supabase X1 queue/RPC family referenced by the X1 API and swarm runtime. The **intended authority** is the X1 control-plane contract, but its dedicated repository is currently an implementation gap at the inspected default-branch ref. The native X1 API is the current staging operator facade; it must not be misrepresented as a complete production control plane. No production queue/worker activation is authorized by this audit.
+
+Required implementation sequence:
+1. Publish a versioned, machine-readable API contract for authorize, enqueue, lease, finish, approvals, tenant scope, idempotency, budgets, and receipts.
+2. Decide whether to implement that contract inside `x1-ai-hub-control-plane` or explicitly keep the service implementation in X1 Operating Systems. There must be one implementation owner and one deployed endpoint; no parallel control-plane service.
+3. Make the swarm worker's `X1_CONTROL_PLANE_URL` resolve to the actual tested authorization endpoint, and align the gateway/RPC request/response schemas with contract tests.
+4. Keep all mutation handlers disabled. The worker's current `READ_ONLY` guard remains the correct fail-closed posture until independent authorization, lease-concurrency, duplicate-execution, cancellation, budget, audit and rollback tests pass.
+5. Correct Prompt Lab's autonomous-agent instructions to state that it is a prompt workbench/proposal generator, not the control plane. It must not issue shell commands, production mutations, deployments, DNS changes, or customer communications directly. Its legacy command bridge must remain disabled/untrusted for privileged operations until replaced with typed, allowlisted, authenticated X1 work packets.
+6. Fix the preview staging binding and run authenticated staging API smoke tests. PR #25 must remain unmerged until this passes.
+
+**Current status: AUTHORITY MODEL DEFINED; IMPLEMENTATION ALIGNMENT FAIL/BLOCKED.** Repository declarations now agree in the audit, but the dedicated control-plane implementation and worker API compatibility are not yet established.
+
