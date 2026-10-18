@@ -212,7 +212,7 @@ export default function LaunchStudio() {
   const layout = LAYOUTS.find(l=>l.id===project.layoutId) || LAYOUTS[0];
   const sections = SECTION_LIBRARY.filter(s=>s.label.toLowerCase().includes(sectionQuery.toLowerCase()) || s.group.toLowerCase().includes(sectionQuery.toLowerCase()));
   const industries = INDUSTRIES.filter(i=>i.label.toLowerCase().includes(industryQuery.toLowerCase()));
-  const update = (patch) => setProject(prev=>({...prev,...patch,generatedContent:null}));
+  const update = (patch) => setProject(prev=>({...prev,...patch,...(Object.prototype.hasOwnProperty.call(patch,'generatedContent')?{}:{generatedContent:null})}));
   useEffect(()=>{ try { localStorage.setItem('x1-launch-studio-project',JSON.stringify(project)); } catch {} },[project]);
   useEffect(()=>{ setGenerated(!!project.generatedContent); },[project.generatedContent]);
   const generateContent = () => {
