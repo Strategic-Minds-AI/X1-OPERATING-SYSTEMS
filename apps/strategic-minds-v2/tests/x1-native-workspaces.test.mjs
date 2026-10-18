@@ -34,6 +34,7 @@ const STAGING_ENV={VERCEL_ENV:"preview",SUPABASE_URL:STAGING_ORIGIN,SUPABASE_ANO
 function responseSink(){return {statusCode:200,headers:{},body:null,setHeader(k,v){this.headers[k]=v;},end(s){this.body=JSON.parse(s);}};}
 function reply(data,status=200){return new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json"}});}
 function fakeX1(fetchLog=[]){
+ let createdRow=null;
  return async (url,options={})=>{
   const u=new URL(url);fetchLog.push({url:u.toString(),method:options.method||"GET",body:options.body?JSON.parse(options.body):null});
   assert.equal(u.origin,STAGING_ORIGIN);
