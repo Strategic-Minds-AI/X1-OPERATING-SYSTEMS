@@ -4,7 +4,7 @@ const ACTION_CLASSES=new Set(["READ_ONLY","DRAFT","BRANCH_WRITE","PREVIEW_WRITE"
 function safeWorker(row){
  const actions=Array.isArray(row.allowed_action_classes)?row.allowed_action_classes.filter(x=>ACTION_CLASSES.has(x)):[];
  const capabilities=Array.isArray(row.allowed_capabilities)?row.allowed_capabilities.filter(x=>typeof x==="string").map(x=>x.slice(0,100)).slice(0,40):[];
- const age=Number.isFinite(Number(row.heartbeat_age_seconds))?Math.max(0,Number(row.heartbeat_age_seconds)):null;
+ const age=row.heartbeat_age_seconds===null||row.heartbeat_age_seconds===undefined?null:(Number.isFinite(Number(row.heartbeat_age_seconds))?Math.max(0,Number(row.heartbeat_age_seconds)):null);
  return {workerId:String(row.worker_id||"").slice(0,100),environment:"preview",executionPlane:String(row.execution_plane||"unknown").slice(0,80),enabled:row.enabled===true,credentialBindingState:String(row.credential_binding_state||"UNKNOWN").slice(0,40),allowedActionClasses:actions,allowedCapabilities:capabilities,leaseHold:row.lease_hold===true,leaseAllowed:row.lease_allowed===true,runtimeState:typeof row.runtime_state==="string"?row.runtime_state.slice(0,40):null,heartbeatAt:typeof row.heartbeat_at==="string"?row.heartbeat_at:null,heartbeatAgeSeconds:age,workerStatus:String(row.worker_status||"UNKNOWN").slice(0,40),branchWriteReady:row.branch_write_ready===true};
 }
 export async function runWorkerStatus(req,res,{env=process.env,fetchImpl=fetch}={}){
