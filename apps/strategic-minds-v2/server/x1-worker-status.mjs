@@ -17,6 +17,6 @@ export async function runWorkerStatus(req,res,{env=process.env,fetchImpl=fetch}=
   let data;try{data=await response.json();}catch{throw new PublicApiError(503,"WORKER_STATUS_INVALID");}
   if(!data||data.tenant_id!==operator.tenant_id||!Array.isArray(data.workers))throw new PublicApiError(503,"WORKER_STATUS_INVALID");
   const workers=data.workers.map(safeWorker);
-  return respond(res,200,{status:"WORKER_STATUS_VERIFIED",tenant_id:operator.tenant_id,role:operator.role,observed_at:data.observed_at,workers,readiness:{branchWriteWorkers:workers.filter(w=>w.branchWriteReady).length,readOnlyWorkers:workers.filter(w=>w.enabled&&w.leaseAllowed&&!w.leaseHold&&w.allowedActionClasses.includes("READ_ONLY")).length,heldWorkers:workers.filter(w=>!w.enabled||!w.leaseAllowed||w.leaseHold).length}});
+  return respond(res,200,{status:"WORKER_STATUS_VERIFIED",tenant_id:operator.tenant_id,role:operator.role,observed_at:data.observed_at,workers,readiness:{branchWriteWorkers:workers.filter(w=>w.branchWriteReady).length,readOnlyWorkers:workers.filter(w=>w.enabled&&w.leaseAllowed&&!w.leaseHold&&w.heartbeatAgeSeconds!==null&&w.heartbeatAgeSeconds<=300&&w.allowedActionClasses.includes("READ_ONLY")).length,heldWorkers:workers.filter(w=>!w.enabled||!w.leaseAllowed||w.leaseHold).length,staleWorkers:workers.filter(w=>w.heartbeatAgeSeconds===null||w.heartbeatAgeSeconds>300).length}});
  }catch(err){if(err instanceof PublicApiError)return respond(res,err.status,{status:"BLOCKED",reason:err.code});return respond(res,503,{status:"BLOCKED",reason:"WORKER_STATUS_UNAVAILABLE"});}
 }
