@@ -51,12 +51,12 @@ function Call({eden=false,variant,small=false}) {
 function Navigation({variant}) {
  const [open,setOpen]=useState(false);
  const pages=[
- ['HOME','/v2/a'],['SERVICES','/v2/b#services'],['SOLUTIONS','/v2/b#services'],
+ ['HOME','/v2/b'],['SERVICES','/v2/b#services'],['SOLUTIONS','/v2/b#services'],
  ['INDUSTRIES','/v2/b#services'],['PRICING','/pricing'],
  ['PORTAL','/portal'],['CONTACT','/v2/c#onboarding']
  ];
  return <header className="v2-header"><div className="v2-header-grid">
-  <Link className="v2-header-s" to="/v2/a" aria-label="Strategic Minds AI home"><img src="/v2-assets/silver-emblem.png" alt="Metallic Strategic Minds S"/></Link>
+  <Link className="v2-header-s" to="/v2/b" aria-label="Strategic Minds AI home"><img src="/v2-assets/silver-emblem.png" alt="Metallic Strategic Minds S"/></Link>
   <Call eden variant={variant}/>
   <div className="v2-nav-shell">
    <button type="button" className="v2-menu" aria-label={open?'Close navigation':'Open navigation'}
