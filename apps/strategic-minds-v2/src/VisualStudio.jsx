@@ -102,6 +102,7 @@ export default function VisualStudio(){
     <div className="x1-rail-divider"/>
     <Link to="/portal/demo" title="Client dashboard"><LayoutDashboard size={19}/></Link>
     <button className="active" title="Visual Studio" aria-label="Visual Studio"><Layers3 size={21}/></button>
+    <Link to="/admin/launch-studio" title="Launch Studio" aria-label="Launch Studio"><Sparkles size={20}/></Link>
     <button onClick={()=>setPanel('sandboxes')} title="Sandboxes" aria-label="Sandboxes"><Box size={20}/></button>
     <Link to="/admin/agent" title="X1 GPT Command Agent" aria-label="X1 GPT Command Agent"><MessageCircle size={20}/></Link>
     <button onClick={()=>setPanel('agents')} title="Agent roster" aria-label="Agent roster"><Workflow size={20}/></button>
