@@ -120,6 +120,19 @@ test("intelligence scan refuses production before making any upstream request", 
   assert.equal(calls, 0);
 });
 
+test("intelligence scan refuses a non-staging Supabase origin before any upstream request", async () => {
+  let calls = 0;
+  const res = makeResponse();
+  await runIntelligenceScan(
+    { method: "POST", headers: { authorization: "Bearer test-access-token" }, body: { limit: 1 } },
+    res,
+    { env: previewEnv({ SUPABASE_URL: "https://wrong-project.supabase.co" }), fetchImpl: async () => { calls++; throw new Error("must not fetch"); } }
+  );
+  assert.equal(res.statusCode, 503);
+  assert.deepEqual(JSON.parse(res.body), { status: "UNBOUND", reason: "NON_STAGING_TARGET" });
+  assert.equal(calls, 0);
+});
+
 test("intelligence scan rejects missing bearer before contacting staging", async () => {
   let calls = 0;
   const res = makeResponse();
