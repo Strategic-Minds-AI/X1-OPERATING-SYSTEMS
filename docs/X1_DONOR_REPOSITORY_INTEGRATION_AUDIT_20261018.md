@@ -75,6 +75,28 @@ Target architecture remains Base44-independent. This audit records source and re
 5. Correct the existing PR #25 preview-to-staging binding before authenticated ingestion tests. Do not merge PR #25 while it returns `503 NON_STAGING_TARGET`.
 6. Keep the swarm runtime release locked until lease-concurrency, duplicate-execution, fault-injection, shutdown, sandbox, and authenticated integration tests pass.
 
+
+### 5. Cloud Browser / Computer Use — XTREME-SYSTEMS/cloudbrowser-control
+
+- Canonical repository supplied by the user: `XTREME-SYSTEMS/cloudbrowser-control`; reviewed default branch: `main`; observed tree SHA: `9477ac22bf4506364f6dcf0d824950ed784a2284`; repository metadata reports **public**.
+- The repo contains a React/Vite control-plane UI, a separate `browser-engine/` Node/Express + Playwright service, and an `operator/` service. The browser engine declares Node 24, a test command (`node --test tests/*.test.js`), and authenticated API endpoints; its README describes the engine as a self-hosted browser automation service.
+- The UI is still a Base44 app: root `package.json` names it `base44-app`, includes `@base44/sdk` and `@base44/vite-plugin`, and `src/api/base44Client.js` creates the Base44 client. This source cannot be imported wholesale into the Base44-independent X1 production runtime.
+- `01_Builder_Docs/PERSISTENT_CLOUD_BROWSER.md` describes encrypted browser-state persistence and opaque restore tokens, but explicitly requires isolated preview/staging acceptance tests. `01_Builder_Docs/SMOKE_TESTS.md` defines the necessary health/start/navigate/observe/save/end/restore checks.
+- The 2026-09-26 MCP validation receipt says basic health/start/navigate/observe passed on a fresh session, but durable restore across worker loss was not proven at that time; the feature-branch implementation still requires isolated black-box validation.
+- **Security incident signal:** `03_Bridge_Receipts/mcp/2026-09-26-mcp-validation.md` records `SECRET_EXPOSURE_DETECTED` for a Cloud Browser MCP API key in active MCP configuration records and explicitly marks rotation required after scoped cutover approval. No credential value is reproduced here. Because repository metadata reports the repository public, treat this as a potential credential-exposure incident: inspect current MCP configuration/access logs, rotate the affected key through the provider's secret manager, update authorized consumers, verify routes, then revoke the old key. Never copy the value into GitHub, tickets, logs, or this audit.
+- `browser-engine/README.md` documents `ENGINE_API_KEY` with a default of `changeme` and shows a Cloud Run example using `--allow-unauthenticated` while noting production should disable it. Production must fail closed: no public unauthenticated browser-engine endpoint, no default/shared fallback key, strict origin/network access, rate/concurrency limits, per-tenant authorization, SSRF/navigation policy, audit receipts, and encrypted server-side persistence.
+- Status: **BROWSER ENGINE DONOR / CONTROL-PLANE UI REQUIRES NATIVE MIGRATION / PERSISTENCE NOT YET INDEPENDENTLY VERIFIED**.
+
+## Cloud Browser integration boundary
+
+1. Treat Cloud Browser as X1's **isolated browser execution service**, not as a second X1 control plane. X1 owns user/tenant authorization, queue/lease, approvals, budgets, audit records, and job state.
+2. Call the browser engine only from a server-side X1 adapter using server-held credentials. Never expose the engine API key, cookies, Playwright storage state, or persistence encryption material to the browser/client.
+3. Normalize operations to an allowlisted contract such as health, create session, navigate, observe, screenshot, end session, and opaque persistence save/restore. Validate URLs against SSRF protections and block loopback/private/link-local/metadata targets unless an explicitly authorized internal test allows them.
+4. Keep browser jobs read-only and preview-only by default. Form submission, account changes, purchases, posting, destructive actions, or production releases require explicit scoped authorization and separate policy gates.
+5. Before connecting to production X1, pass isolated black-box tests for auth failure, tenant isolation, concurrent sessions, timeout/cancellation, browser crash recovery, persistence across worker loss, credential non-disclosure, SSRF, and log redaction. Capture source SHA and independent validation receipt.
+6. Do not deploy the Base44 frontend or connect it as a runtime dependency. Rebuild only the needed browser controls inside the native X1 admin; retain the browser engine as a separately isolated service behind an authenticated gateway.
+
+
 ## Evidence limits
 
 This document records repository metadata and source files inspected on 2026-10-18. It does not certify live provider credentials, production runtime state, visual parity, deployment behavior, authenticated API flows, or production readiness.
