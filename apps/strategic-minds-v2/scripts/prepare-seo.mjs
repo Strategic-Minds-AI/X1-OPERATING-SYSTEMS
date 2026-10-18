@@ -12,7 +12,8 @@ export function resolveSeoPolicy(env = process.env) {
   const approved = new Set(String(env.X1_SEO_APPROVED_DOMAINS || '')
     .split(',').map(x => x.trim().toLowerCase()).filter(Boolean));
   const secureOrigin = canonical.protocol === 'https:' && !canonical.username && !canonical.password &&
-    !canonical.search && !canonical.hash && (canonical.pathname === '/' || canonical.pathname === '');
+    !canonical.search && !canonical.hash && !canonical.port && (canonical.pathname === '/' || canonical.pathname === '');
+  if (env.VERCEL_ENV !== 'production') return { indexable: false, reason: 'NON_PRODUCTION_DEPLOYMENT', canonicalUrl: canonical.origin, hostname: host };
   if (env.X1_SEO_INDEXING_ENABLED !== 'true') return { indexable: false, reason: 'INDEXING_FLAG_NOT_ENABLED', canonicalUrl: canonical.origin, hostname: host };
   if (!secureOrigin) return { indexable: false, reason: 'CANONICAL_ORIGIN_NOT_SECURE_OR_NOT_ROOT', canonicalUrl: canonical.origin, hostname: host };
   if (!approved.has(host)) return { indexable: false, reason: 'HOSTNAME_NOT_EXPLICITLY_APPROVED', canonicalUrl: canonical.origin, hostname: host };
