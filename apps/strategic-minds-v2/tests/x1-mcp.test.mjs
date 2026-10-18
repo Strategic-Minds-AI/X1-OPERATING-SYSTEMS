@@ -64,12 +64,12 @@ test("MCP queue status is tenant-scoped and never dispatches",async()=>{
  assert.equal(result.structuredContent.dispatch,"NOT_DISPATCHED_BY_MCP");
  assert.equal(calls.some(c=>c.method==="POST"),false);
 });
-test("MCP coding tool uses canonical enqueue RPC and returns queued-not-executed",async()=>{
+test("MCP coding tool uses canonical enqueue RPC and returns draft-saved-not-executed",async()=>{
  const calls=[],res=sink();
  await runMcp({method:"POST",headers:{authorization:"Bearer x1-user-token"},body:{jsonrpc:"2.0",id:4,method:"tools/call",params:{name:"x1_enqueue_coding_task",arguments:{title:"Build native prompt chains",description:"Add a persisted chain editor with explicit inputs, outputs and evaluation gates.",category:"engineering",acceptanceCriteria:["Automated tests pass"]}}}},res,{env:ENV,fetchImpl:fakeFetch(calls)});
  const result=res.body.result;
  assert.equal(result.isError,false);
- assert.equal(result.structuredContent.status,"QUEUED_NOT_EXECUTED");
+ assert.equal(result.structuredContent.status,"DRAFT_SAVED_NOT_EXECUTED");
  assert.equal(result.structuredContent.item.status,"PENDING");
  assert.ok(calls.some(c=>c.url.includes("/rest/v1/rpc/x1_enqueue_work")&&c.method==="POST"));
  assert.equal(calls.some(c=>c.url.includes("/rest/v1/x1_work_queue")&&c.method==="POST"),false);
