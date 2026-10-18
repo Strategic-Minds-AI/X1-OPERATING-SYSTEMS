@@ -24,6 +24,15 @@ The upstream `x1-prompt-lab` local bridge currently accepts shell command string
 
 Before any coding-worker execution is enabled, replace that mechanism with an isolated worker protocol: signed short-lived task leases, a narrow allowlisted operation schema, ephemeral per-task worktrees/containers, no production secrets, bounded network/filesystem access, idempotency, immutable source SHAs, kill switch, and independent validation receipts. Start with read-only scans and preview-only patches.
 
+## Current validation findings
+
+- Native tests: 139 passed, 0 failed; Vite build succeeded on the PR head.
+- The Vercel preview is READY and serves `/admin/intelligence` with HTTP 200.
+- Read-only API smoke tests against the preview returned `503 NON_STAGING_TARGET` for `/api/x1/agent-config` and `/api/x1/intelligence-scan`. The preview has a Supabase URL configured, but it is not the exact X1 staging origin required by `resolveStagingBinding`. The route correctly fails closed. Do not point it at production or copy production service credentials; the branch preview must be bound to the verified staging URL and staging-only keys before authenticated API tests can pass.
+- The staging table was applied to `uvdkzsbjackpjvpoxtyk` and verified: RLS enabled, no policies, and no SELECT privileges for `anon` or `authenticated`; server-side `service_role` retains the required SELECT/INSERT/UPDATE privileges. The no-policy RLS advisor finding is intentional for the server-only access model.
+- Local Ollama is online and a live `llama3.1:8b` generation returned `X1_OLLAMA_OK`. The public ngrok bridge on the local machine returns HTTP 401 without credentials; the native X1-to-tunnel authenticated request is not yet verified.
+- Live production `robots.txt` still returns `Disallow: /`; `/sitemap.xml` returns 404. Production indexing is not enabled by this change.
+
 ## Release gates
 
 1. Merge and build source on `main`; verify production deployment and rollback target.
