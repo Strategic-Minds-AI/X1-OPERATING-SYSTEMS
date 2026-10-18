@@ -1,6 +1,6 @@
 import React, {useEffect,useMemo,useRef,useState} from 'react';
 import {Link} from 'react-router-dom';
-import {Activity,ArrowLeft,ArrowRight,ArrowUpRight,BookOpen,Box,Check,CheckCircle2,ChevronDown,ChevronRight,Clipboard,Code2,Command,FileCode2,FileDiff,Globe2,History,Layers3,LayoutDashboard,LockKeyhole,Maximize2,MessageCircle,Mic,MicOff,Monitor,MoreHorizontal,MousePointer2,PanelLeftClose,Pause,Play,Plus,RefreshCw,RotateCcw,Send,Settings2,ShieldCheck,Smartphone,Sparkles,Square,Terminal,TestTube2,Undo2,Workflow,X,Zap} from 'lucide-react';
+import {Activity,ArrowLeft,ArrowRight,ArrowUpRight,BookOpen,Box,Check,Columns3,CheckCircle2,ChevronDown,ChevronRight,Clipboard,Code2,Command,FileCode2,FileDiff,Globe2,History,Layers3,LayoutDashboard,LockKeyhole,Maximize2,MessageCircle,Mic,MicOff,Monitor,MoreHorizontal,MousePointer2,PanelLeftClose,Pause,Play,Plus,RefreshCw,RotateCcw,Send,Settings2,ShieldCheck,Smartphone,Sparkles,Square,Terminal,TestTube2,Undo2,Workflow,X,Zap} from 'lucide-react';
 import './VisualStudio.css';
 const DEVICES=[{id:'desktop',label:'Desktop',Icon:Monitor},{id:'tablet',label:'Tablet',Icon:Layers3},{id:'mobile',label:'Mobile',Icon:Smartphone}];
 const TABS=['Preview','Code','Changes','Checks'];
@@ -104,6 +104,7 @@ export default function VisualStudio(){
     <button className="active" title="Visual Studio" aria-label="Visual Studio"><Layers3 size={21}/></button>
     <Link to="/admin/visual-editor" title="Visual Editor" aria-label="Visual Editor"><MousePointer2 size={20}/></Link>
      <Link to="/admin/prompt-lab" title="Prompt Lab" aria-label="Prompt Lab"><Terminal size={20}/></Link>
+     <Link to="/admin/coding-kanban" title="Autonomous Coding Kanban" aria-label="Autonomous Coding Kanban"><Columns3 size={20}/></Link>
      <Link to="/admin/launch-studio" title="Launch Studio" aria-label="Launch Studio"><Sparkles size={20}/></Link>
     <button onClick={()=>setPanel('sandboxes')} title="Sandboxes" aria-label="Sandboxes"><Box size={20}/></button>
     <Link to="/admin/agent" title="X1 GPT Command Agent" aria-label="X1 GPT Command Agent"><MessageCircle size={20}/></Link>
