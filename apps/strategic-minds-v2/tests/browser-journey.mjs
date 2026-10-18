@@ -60,6 +60,30 @@ try{
  check(menu==='true','mobile menu opens via real click');
  const service=await page.$eval('a[href="/v2/b#services"]',el=>el.getAttribute('href'));
  check(service==='/v2/b#services','service link targets standalone path');
+ // Verify the integrated Launch Studio route, template catalog, brand palette library, and mobile layout.
+ await page.setViewport({width:1440,height:900,deviceScaleFactor:1});
+ const launchResponse=await page.goto(base+'/admin/launch-studio',{waitUntil:'networkidle0',timeout:30000});
+ await page.waitForSelector('.x1-launch-studio',{timeout:12000});
+ check([200,304].includes(launchResponse.status()),'Launch Studio route HTTP '+launchResponse.status());
+ check((await page.$('.x1-ls-tabs button')).length===7,'Launch Studio exposes seven in-admin workspaces');
+ check((await page.$('.x1-ls-site-hero')).length===1,'Launch Studio renders an in-app website preview without iframe');
+ await page.click('.x1-ls-tabs button:nth-child(2)');
+ await page.waitForSelector('.x1-ls-template-card',{timeout:12000});
+ check((await page.$('.x1-ls-template-card')).length>0,'Digital Domination template library renders');
+ check((await page.$eval('.x1-ls-tab-content',el=>el.textContent)).includes('418 saved website design templates'),'template catalog snapshot is visible');
+ await page.click('.x1-ls-tabs button:nth-child(3)');
+ await page.waitForSelector('.x1-ls-palette-card');
+ check((await page.$('.x1-ls-palette-card')).length===20,'20 color systems are selectable');
+ await page.click('.x1-ls-tabs button:nth-child(5)');
+ check((await page.$('.x1-ls-section-grid label')).length>=20,'page and section composition library renders');
+ await page.setViewport({width:390,height:844,deviceScaleFactor:1});
+ await page.goto(base+'/admin/launch-studio',{waitUntil:'networkidle0',timeout:30000});
+ await page.waitForSelector('.x1-launch-studio');
+ const launchMobile=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth-window.innerWidth,heading:document.querySelector('.x1-ls-brand h1')?.textContent}));
+ check(launchMobile.overflow<=1,'Launch Studio mobile layout has no horizontal page overflow ('+launchMobile.overflow+')');
+ check(launchMobile.heading==='Launch Studio','Launch Studio header visible on mobile');
+ await page.screenshot({path:resolve(screenshotDir,'X1_launch_studio_mobile.png')});
+ process.stdout.write('PASS_LAUNCH_STUDIO_TEMPLATE_PALETTE_MOBILE\n');
  // Complete all four preview discovery questions with consent-first delivery.
  await page.goto(base+'/v2/c#onboarding',{waitUntil:'networkidle0'});
  await page.waitForSelector('#v2-field-business');
