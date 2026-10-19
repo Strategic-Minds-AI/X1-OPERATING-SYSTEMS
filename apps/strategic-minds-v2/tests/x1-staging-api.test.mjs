@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { STAGING_ORIGIN, resolveStagingBinding } from "../server/x1-staging.mjs";
-import { runHealth } from "../api/x1/health.js";
+import { runHealth, runDeepHealth } from "../api/x1/health.js";
 import { runOperatorStatus } from "../api/x1/operator-status.js";
 
 const USER = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -198,4 +198,55 @@ test("operator route disallows POST and all queue mutations", async () => {
   });
   assert.equal(response.statusCode, 405);
   assert.equal(client.calls.length, 0);
+});
+
+
+test("deep health verifies only a zero-row staging read and never returns credentials", async () => {
+  const response = res();
+  let seenUrl = "";
+  let seenSettings;
+  const fetchImpl = async (url, settings) => {
+    seenUrl = url;
+    seenSettings = settings;
+    return reply([]);
+  };
+  await runDeepHealth(req(), response, { env: VALID, fetchImpl });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body.status, "STAGING_CONNECTION_VERIFIED");
+  assert.equal(response.body.database, "READ_ONLY_ZERO_ROW_PROBE_PASSED");
+  assert.equal(response.body.writes, "DISABLED");
+  assert.equal(response.body.dispatch, "DISABLED");
+  assert.equal(seenUrl, STAGING_ORIGIN + "/rest/v1/x1_tenant_memberships?select=user_id&limit=0");
+  assert.equal(seenSettings.method, "GET");
+  assert.equal(seenSettings.headers.apikey, VALID.SUPABASE_SERVICE_ROLE_KEY);
+  assert.equal(seenSettings.headers.authorization, "Bearer " + VALID.SUPABASE_SERVICE_ROLE_KEY);
+  assert.equal(JSON.stringify(response.body).includes(VALID.SUPABASE_SERVICE_ROLE_KEY), false);
+});
+test("deep health fails closed on invalid staging bindings", async () => {
+  const response = res();
+  let calls = 0;
+  await runDeepHealth(req(), response, {
+    env: { ...VALID, SUPABASE_URL: "https://vgsmyhqqtkkluhypxyua.supabase.co" },
+    fetchImpl: async () => { calls++; return reply([]); }
+  });
+  assert.equal(response.statusCode, 503);
+  assert.equal(response.body.reason, "NON_STAGING_TARGET");
+  assert.equal(calls, 0);
+});
+test("deep health hides database credential failures and rejects write methods", async () => {
+  const failed = res();
+  await runDeepHealth(req(), failed, {
+    env: VALID,
+    fetchImpl: async () => reply({ code: "invalid-api-key" }, 401)
+  });
+  assert.equal(failed.statusCode, 503);
+  assert.equal(failed.body.reason, "STAGING_DATABASE_UNAVAILABLE");
+  const method = res();
+  let calls = 0;
+  await runDeepHealth(req({}, "POST"), method, {
+    env: VALID,
+    fetchImpl: async () => { calls++; return reply([]); }
+  });
+  assert.equal(method.statusCode, 405);
+  assert.equal(calls, 0);
 });
