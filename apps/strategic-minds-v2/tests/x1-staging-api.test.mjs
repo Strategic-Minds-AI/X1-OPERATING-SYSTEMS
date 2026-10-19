@@ -37,7 +37,7 @@ function fakeSupabase(opts = {}) {
     if (u.pathname === "/auth/v1/user") {
       assert.equal(settings.headers.apikey, VALID.SUPABASE_ANON_KEY);
       assert.equal(settings.headers.authorization, "Bearer fake-jwt");
-      return opts.invalidToken ? reply({ error: "bad-jwt" }, 401) : reply({ id: USER });
+      return opts.invalidToken ? reply({ error: "bad-jwt" }, opts.invalidTokenStatus ?? 403) : reply({ id: USER });
     }
     assert.equal(settings.headers.apikey, VALID.SUPABASE_SERVICE_ROLE_KEY);
     assert.equal(settings.headers.authorization, "Bearer " + VALID.SUPABASE_SERVICE_ROLE_KEY);
@@ -115,7 +115,7 @@ test("operator status requires a user access token, not service credentials", as
 test("forged or expired access token is rejected by Supabase Auth", async () => {
   const response = res();
   await runOperatorStatus(req({ authorization: "Bearer fake-jwt" }), response, {
-    env: VALID, fetchImpl: fakeSupabase({ invalidToken: true }).fetchImpl
+    env: VALID, fetchImpl: fakeSupabase({ invalidToken: true, invalidTokenStatus: 403 }).fetchImpl
   });
   assert.equal(response.statusCode, 401);
   assert.equal(response.body.reason, "AUTH_INVALID");
