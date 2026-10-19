@@ -48,11 +48,23 @@ function stub({members=[{tenant_id:TENANT,role:'OWNER',status:'ACTIVE'}],
    assert.equal(settings.headers.apikey,ENV.SUPABASE_ANON_KEY);
    return invalidJwt?reply({error:'expired'},401):reply({id:USER});
   }
+  if(u.pathname==='/rest/v1/x1_tenant_memberships'){
+   assert.equal(settings.headers.apikey,ENV.SUPABASE_ANON_KEY);
+   assert.equal(settings.headers.authorization,'Bearer synthetic-auth');
+   return reply(members);
+  }
+  if(u.pathname==='/rest/v1/x1_tenants'){
+   assert.equal(settings.headers.apikey,ENV.SUPABASE_ANON_KEY);
+   assert.equal(settings.headers.authorization,'Bearer synthetic-auth');
+   return reply([{tenant_id:TENANT,status:'ACTIVE'}]);
+  }
+  if(u.pathname==='/rest/v1/x1_work_queue'){
+   assert.equal(settings.headers.apikey,ENV.SUPABASE_ANON_KEY);
+   assert.equal(settings.headers.authorization,'Bearer synthetic-auth');
+   return reply([{status:'COMPLETED'},{status:'PENDING'}]);
+  }
   assert.equal(settings.headers.apikey,ENV.SUPABASE_SERVICE_ROLE_KEY);
   assert.equal(settings.headers.authorization,'Bearer '+ENV.SUPABASE_SERVICE_ROLE_KEY);
-  if(u.pathname==='/rest/v1/x1_tenant_memberships')return reply(members);
-  if(u.pathname==='/rest/v1/x1_tenants')return reply([{tenant_id:TENANT,status:'ACTIVE'}]);
-  if(u.pathname==='/rest/v1/x1_work_queue')return reply([{status:'COMPLETED'},{status:'PENDING'}]);
   if(u.pathname==='/rest/v1/apex_output_events')return reply(outputs);
   if(u.pathname==='/rest/v1/x1_admin_chat_turns'){
    if(failStorage)return reply({message:'unavailable'},503);

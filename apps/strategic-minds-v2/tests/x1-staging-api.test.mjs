@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { STAGING_ORIGIN, resolveStagingBinding } from "../server/x1-staging.mjs";
-import { runHealth } from "../api/x1/health.js";
+import { STAGING_ORIGIN, resolveStagingBinding, resolveStagingUserBinding } from "../server/x1-staging.mjs";
+import { runHealth, runDeepHealth } from "../api/x1/health.js";
 import { runOperatorStatus } from "../api/x1/operator-status.js";
 
 const USER = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -30,17 +30,15 @@ function reply(body, status = 200) {
 function fakeSupabase(opts = {}) {
   const calls = [];
   const fetchImpl = async (url, settings) => {
-    calls.push({ url, method: settings.method, headers: settings.headers });
+    calls.push({ url, method: settings.method, headers: settings.headers, body: settings.body });
     const u = new URL(url);
     assert.equal(u.origin, STAGING_ORIGIN);
     assert.equal(settings.method, "GET");
+    assert.equal(settings.headers.apikey, VALID.SUPABASE_ANON_KEY);
+    assert.equal(settings.headers.authorization, "Bearer fake-jwt");
     if (u.pathname === "/auth/v1/user") {
-      assert.equal(settings.headers.apikey, VALID.SUPABASE_ANON_KEY);
-      assert.equal(settings.headers.authorization, "Bearer fake-jwt");
-      return opts.invalidToken ? reply({ error: "bad-jwt" }, 401) : reply({ id: USER });
+      return opts.invalidToken ? reply({ error: "bad-jwt" }, opts.invalidTokenStatus ?? 403) : reply({ id: USER });
     }
-    assert.equal(settings.headers.apikey, VALID.SUPABASE_SERVICE_ROLE_KEY);
-    assert.equal(settings.headers.authorization, "Bearer " + VALID.SUPABASE_SERVICE_ROLE_KEY);
     if (u.pathname === "/rest/v1/x1_tenant_memberships") {
       assert.equal(u.searchParams.get("user_id"), "eq." + USER);
       assert.equal(u.searchParams.get("status"), "eq.ACTIVE");
@@ -48,10 +46,13 @@ function fakeSupabase(opts = {}) {
     }
     if (u.pathname === "/rest/v1/x1_tenants") {
       assert.equal(u.searchParams.get("tenant_id"), "eq." + (opts.wantTenant ?? TENANT_A));
+      assert.equal(u.searchParams.get("status"), "eq.ACTIVE");
       return reply(opts.suspendedTenant ? [] : [{ tenant_id: opts.wantTenant ?? TENANT_A, status: "ACTIVE" }]);
     }
     if (u.pathname === "/rest/v1/x1_work_queue") {
       assert.equal(u.searchParams.get("tenant_id"), "eq." + (opts.wantTenant ?? TENANT_A));
+      assert.equal(u.searchParams.get("select"), "status");
+      assert.equal(u.searchParams.get("limit"), "201");
       if (opts.queueUnavailable) return reply({ error: "not-ready" }, 503);
       return reply(opts.jobs ?? [{ status: "COMPLETED" }, { status: "BLOCKED" }, { status: "COMPLETED" }]);
     }
@@ -67,6 +68,8 @@ test("existing provider-managed staging secret alias stays preview-only", () => 
   assert.equal(resolveStagingBinding(alias).serviceKey, SUPABASE_SERVICE_ROLE_KEY);
   assert.equal(resolveStagingBinding({ ...alias, VERCEL_ENV: "production" }).ok, false);
   assert.equal(resolveStagingBinding({ ...alias, SUPABASE_URL: "https://other.supabase.co" }).ok, false);
+  assert.equal(resolveStagingUserBinding({ VERCEL_ENV: "preview", SUPABASE_URL: STAGING_ORIGIN, SUPABASE_ANON_KEY: "public" }).ok, true);
+  assert.equal(resolveStagingUserBinding({ ...common, VERCEL_ENV: "production" }).ok, false);
 });
 test("missing preview environment fails closed", () => {
   assert.deepEqual(resolveStagingBinding({ ...VALID, VERCEL_ENV: "production" }), {
@@ -115,7 +118,7 @@ test("operator status requires a user access token, not service credentials", as
 test("forged or expired access token is rejected by Supabase Auth", async () => {
   const response = res();
   await runOperatorStatus(req({ authorization: "Bearer fake-jwt" }), response, {
-    env: VALID, fetchImpl: fakeSupabase({ invalidToken: true }).fetchImpl
+    env: VALID, fetchImpl: fakeSupabase({ invalidToken: true, invalidTokenStatus: 403 }).fetchImpl
   });
   assert.equal(response.statusCode, 401);
   assert.equal(response.body.reason, "AUTH_INVALID");
@@ -126,7 +129,8 @@ test("no active membership denies access before queue lookup", async () => {
   await runOperatorStatus(req({ authorization: "Bearer fake-jwt" }), response, { env: VALID, fetchImpl: client.fetchImpl });
   assert.equal(response.statusCode, 403);
   assert.equal(response.body.reason, "NO_ACTIVE_TENANT_MEMBERSHIP");
-  assert.equal(client.calls.some(c => c.url.includes("x1_work_queue")), false);
+  assert.equal(client.calls.length, 2);
+  assert.equal(client.calls.some(c => c.url.includes("/rest/v1/x1_work_queue")), false);
 });
 test("viewer cannot inspect X1 operator queue", async () => {
   const client = fakeSupabase({ memberships: [{ tenant_id: TENANT_A, role: "VIEWER", status: "ACTIVE" }] });
@@ -198,4 +202,70 @@ test("operator route disallows POST and all queue mutations", async () => {
   });
   assert.equal(response.statusCode, 405);
   assert.equal(client.calls.length, 0);
+});
+
+
+test("deep health verifies only a zero-row staging read and never returns credentials", async () => {
+  const response = res();
+  let seenUrl = "";
+  let seenSettings;
+  const fetchImpl = async (url, settings) => {
+    seenUrl = url;
+    seenSettings = settings;
+    return reply([]);
+  };
+  await runDeepHealth(req(), response, { env: VALID, fetchImpl });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body.status, "STAGING_CONNECTION_VERIFIED");
+  assert.equal(response.body.database, "READ_ONLY_ZERO_ROW_PROBE_PASSED");
+  assert.equal(response.body.writes, "DISABLED");
+  assert.equal(response.body.dispatch, "DISABLED");
+  assert.equal(seenUrl, STAGING_ORIGIN + "/rest/v1/x1_tenant_memberships?select=user_id&limit=0");
+  assert.equal(seenSettings.method, "GET");
+  assert.equal(seenSettings.headers.apikey, VALID.SUPABASE_SERVICE_ROLE_KEY);
+  assert.equal(seenSettings.headers.authorization, "Bearer " + VALID.SUPABASE_SERVICE_ROLE_KEY);
+  assert.equal(JSON.stringify(response.body).includes(VALID.SUPABASE_SERVICE_ROLE_KEY), false);
+});
+test("deep health fails closed on invalid staging bindings", async () => {
+  const response = res();
+  let calls = 0;
+  await runDeepHealth(req(), response, {
+    env: { ...VALID, SUPABASE_URL: "https://vgsmyhqqtkkluhypxyua.supabase.co" },
+    fetchImpl: async () => { calls++; return reply([]); }
+  });
+  assert.equal(response.statusCode, 503);
+  assert.equal(response.body.reason, "NON_STAGING_TARGET");
+  assert.equal(calls, 0);
+});
+test("deep health hides database credential failures and rejects write methods", async () => {
+  const failed = res();
+  await runDeepHealth(req(), failed, {
+    env: VALID,
+    fetchImpl: async () => reply({ code: "invalid-api-key" }, 401)
+  });
+  assert.equal(failed.statusCode, 503);
+  assert.equal(failed.body.reason, "STAGING_DATABASE_UNAVAILABLE");
+  const method = res();
+  let calls = 0;
+  await runDeepHealth(req({}, "POST"), method, {
+    env: VALID,
+    fetchImpl: async () => { calls++; return reply([]); }
+  });
+  assert.equal(method.statusCode, 405);
+  assert.equal(calls, 0);
+});
+
+
+test("operator status works without a Vercel service-role key via scoped RLS reads", async () => {
+  const response = res();
+  const client = fakeSupabase();
+  const { SUPABASE_SERVICE_ROLE_KEY, ...publicOnlyEnv } = VALID;
+  await runOperatorStatus(req({ authorization: "Bearer fake-jwt" }), response, {
+    env: publicOnlyEnv, fetchImpl: client.fetchImpl
+  });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body.status, "STAGING_READ_VERIFIED");
+  assert.equal(client.calls.length, 4);
+  assert.equal(client.calls.every(c => c.headers.authorization === "Bearer fake-jwt"), true);
+  assert.equal(client.calls.every(c => c.headers.apikey === VALID.SUPABASE_ANON_KEY), true);
 });

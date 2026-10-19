@@ -1,5 +1,5 @@
 import {
-  PublicApiError, readBearer, readStagingOperatorStatus, resolveStagingBinding, respond
+  PublicApiError, readBearer, readStagingOperatorStatus, resolveStagingUserBinding, respond
 } from "../../server/x1-staging.mjs";
 
 export async function runOperatorStatus(req, res, { env = process.env, fetchImpl = fetch } = {}) {
@@ -9,7 +9,7 @@ export async function runOperatorStatus(req, res, { env = process.env, fetchImpl
   }
   try {
     readBearer(req.headers);
-    const binding = resolveStagingBinding(env);
+    const binding = resolveStagingUserBinding(env);
     if (!binding.ok) return respond(res, 503, { status: "UNBOUND", reason: binding.code });
     const result = await readStagingOperatorStatus(req, binding, fetchImpl);
     return respond(res, 200, result);
