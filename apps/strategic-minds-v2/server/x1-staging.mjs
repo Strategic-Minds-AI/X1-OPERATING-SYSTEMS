@@ -97,58 +97,64 @@ export async function readStagingOperatorStatus(req, binding, fetchImpl) {
     throw new PublicApiError(401, "AUTH_INVALID");
   }
 
+  // All subsequent reads use the verified user's JWT, never a service-role credential.
+  // Staging RLS and column grants limit visibility to the caller's own membership and
+  // status-only queue metadata for their authorized tenant.
+  const memberships = await fetchJson(fetchImpl, restUrl(binding.origin, "x1_tenant_memberships", {
+    select: "tenant_id,role,status",
+    user_id: "eq." + user.id,
+    status: "eq.ACTIVE",
+    limit: "21"
+  }), binding.anonKey, accessToken, "STAGING_MEMBERSHIP_UNAVAILABLE");
+  if (!Array.isArray(memberships)) throw new PublicApiError(503, "STAGING_INVALID_RESPONSE");
+  if (memberships.length === 0) throw new PublicApiError(403, "NO_ACTIVE_TENANT_MEMBERSHIP");
+
   const wantedTenant = req.headers?.["x-x1-tenant-id"] ?? req.headers?.["X-X1-Tenant-ID"] ?? null;
   if (wantedTenant && (typeof wantedTenant !== "string" || !UUID.test(wantedTenant))) {
     throw new PublicApiError(403, "TENANT_SCOPE_DENIED");
   }
-
-  // The staging RPC checks auth.uid(), active membership, role, and tenant state under a
-  // tightly scoped SECURITY DEFINER function. The caller token is forwarded; no service key
-  // is needed for this read-only operator-status path.
-  let response;
-  try {
-    response = await fetchImpl(binding.origin + "/rest/v1/rpc/x1_read_operator_status", {
-      method: "POST",
-      headers: {
-        apikey: binding.anonKey,
-        authorization: "Bearer " + accessToken,
-        "content-type": "application/json",
-        accept: "application/json"
-      },
-      body: JSON.stringify({ p_tenant_id: wantedTenant || null }),
-      redirect: "error",
-      signal: AbortSignal.timeout(6000)
-    });
-  } catch {
-    throw new PublicApiError(503, "STAGING_UPSTREAM_UNAVAILABLE");
+  if (!wantedTenant && memberships.length !== 1) {
+    throw new PublicApiError(409, "TENANT_SELECTION_REQUIRED");
   }
-  if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      throw new PublicApiError(401, "AUTH_INVALID");
-    }
-    throw new PublicApiError(503, "STAGING_STATUS_UNAVAILABLE");
+  const membership = wantedTenant
+    ? memberships.find((m) => m.tenant_id?.toLowerCase() === wantedTenant.toLowerCase() && m.status === "ACTIVE")
+    : memberships[0];
+  if (!membership || !UUID.test(membership.tenant_id ?? "")) {
+    throw new PublicApiError(403, "TENANT_SCOPE_DENIED");
+  }
+  if (!OPERATOR_ROLES.has(membership.role)) {
+    throw new PublicApiError(403, "ROLE_NOT_PERMITTED");
   }
 
-  let result;
-  try {
-    result = await response.json();
-  } catch {
-    throw new PublicApiError(503, "STAGING_INVALID_RESPONSE");
+  const tenants = await fetchJson(fetchImpl, restUrl(binding.origin, "x1_tenants", {
+    select: "tenant_id,status",
+    tenant_id: "eq." + membership.tenant_id,
+    status: "eq.ACTIVE",
+    limit: "1"
+  }), binding.anonKey, accessToken, "STAGING_TENANT_UNAVAILABLE");
+  if (!Array.isArray(tenants) || tenants.length !== 1) {
+    throw new PublicApiError(403, "TENANT_NOT_ACTIVE");
   }
-  if (!result || typeof result !== "object" || Array.isArray(result)) {
-    throw new PublicApiError(503, "STAGING_INVALID_RESPONSE");
-  }
-  if (result.status === "STAGING_READ_VERIFIED") return result;
 
-  const reason = typeof result.reason === "string" ? result.reason : "STAGING_STATUS_UNAVAILABLE";
-  const statusByReason = {
-    AUTHENTICATION_REQUIRED: 401,
-    NO_ACTIVE_TENANT_MEMBERSHIP: 403,
-    ROLE_NOT_PERMITTED: 403,
-    TENANT_SCOPE_DENIED: 403,
-    TENANT_NOT_ACTIVE: 403,
-    TENANT_SELECTION_REQUIRED: 409,
-    STAGING_QUEUE_UNAVAILABLE: 503
+  // Bounded status sample only. Column-level grants prevent access to payload/task contents.
+  const rows = await fetchJson(fetchImpl, restUrl(binding.origin, "x1_work_queue", {
+    select: "status",
+    tenant_id: "eq." + membership.tenant_id,
+    order: "updated_at.desc",
+    limit: "201"
+  }), binding.anonKey, accessToken, "STAGING_QUEUE_UNAVAILABLE");
+  if (!Array.isArray(rows)) throw new PublicApiError(503, "STAGING_INVALID_RESPONSE");
+  const counts = Object.fromEntries(QUEUE_STATUSES.map((s) => [s, 0]));
+  for (const row of rows.slice(0, 200)) {
+    if (typeof row?.status === "string" && row.status in counts) counts[row.status]++;
+  }
+  return {
+    status: "STAGING_READ_VERIFIED",
+    tenant_id: membership.tenant_id,
+    role: membership.role,
+    user_id: user.id,
+    sample: { limit: 200, truncated: rows.length > 200, counts },
+    dispatch: "DISABLED",
+    writes: "DISABLED"
   };
-  throw new PublicApiError(statusByReason[reason] ?? 503, reason);
 }
