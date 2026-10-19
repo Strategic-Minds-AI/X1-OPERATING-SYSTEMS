@@ -33,45 +33,30 @@ function fakeSupabase(opts = {}) {
     calls.push({ url, method: settings.method, headers: settings.headers, body: settings.body });
     const u = new URL(url);
     assert.equal(u.origin, STAGING_ORIGIN);
-    if (u.pathname === "/auth/v1/user") {
-      assert.equal(settings.method, "GET");
-      assert.equal(settings.headers.apikey, VALID.SUPABASE_ANON_KEY);
-      assert.equal(settings.headers.authorization, "Bearer fake-jwt");
-      return opts.invalidToken ? reply({ error: "bad-jwt" }, opts.invalidTokenStatus ?? 403) : reply({ id: USER });
-    }
-    assert.equal(u.pathname, "/rest/v1/rpc/x1_read_operator_status");
-    assert.equal(settings.method, "POST");
+    assert.equal(settings.method, "GET");
     assert.equal(settings.headers.apikey, VALID.SUPABASE_ANON_KEY);
     assert.equal(settings.headers.authorization, "Bearer fake-jwt");
-    const body = JSON.parse(settings.body);
-    const wantedTenant = body.p_tenant_id;
-    if (opts.rpcResponse) return reply(opts.rpcResponse);
-    if (opts.memberships && opts.memberships.length === 0) {
-      return reply({ status: "BLOCKED", reason: "NO_ACTIVE_TENANT_MEMBERSHIP" });
+    if (u.pathname === "/auth/v1/user") {
+      return opts.invalidToken ? reply({ error: "bad-jwt" }, opts.invalidTokenStatus ?? 403) : reply({ id: USER });
     }
-    if (opts.memberships && opts.memberships.length > 1 && !wantedTenant) {
-      return reply({ status: "BLOCKED", reason: "TENANT_SELECTION_REQUIRED" });
+    if (u.pathname === "/rest/v1/x1_tenant_memberships") {
+      assert.equal(u.searchParams.get("user_id"), "eq." + USER);
+      assert.equal(u.searchParams.get("status"), "eq.ACTIVE");
+      return reply(opts.memberships ?? [{ tenant_id: TENANT_A, role: "OWNER", status: "ACTIVE" }]);
     }
-    if (wantedTenant && wantedTenant !== TENANT_A) {
-      return reply({ status: "BLOCKED", reason: "TENANT_SCOPE_DENIED" });
+    if (u.pathname === "/rest/v1/x1_tenants") {
+      assert.equal(u.searchParams.get("tenant_id"), "eq." + (opts.wantTenant ?? TENANT_A));
+      assert.equal(u.searchParams.get("status"), "eq.ACTIVE");
+      return reply(opts.suspendedTenant ? [] : [{ tenant_id: opts.wantTenant ?? TENANT_A, status: "ACTIVE" }]);
     }
-    const role = opts.memberships?.[0]?.role ?? "OWNER";
-    if (!["OWNER", "ADMIN", "BUILDER", "VALIDATOR"].includes(role)) {
-      return reply({ status: "BLOCKED", reason: "ROLE_NOT_PERMITTED" });
+    if (u.pathname === "/rest/v1/x1_work_queue") {
+      assert.equal(u.searchParams.get("tenant_id"), "eq." + (opts.wantTenant ?? TENANT_A));
+      assert.equal(u.searchParams.get("select"), "status");
+      assert.equal(u.searchParams.get("limit"), "201");
+      if (opts.queueUnavailable) return reply({ error: "not-ready" }, 503);
+      return reply(opts.jobs ?? [{ status: "COMPLETED" }, { status: "BLOCKED" }, { status: "COMPLETED" }]);
     }
-    if (opts.suspendedTenant) return reply({ status: "BLOCKED", reason: "TENANT_NOT_ACTIVE" });
-    if (opts.queueUnavailable) return reply({ status: "BLOCKED", reason: "STAGING_QUEUE_UNAVAILABLE" });
-    return reply({
-      status: "STAGING_READ_VERIFIED",
-      tenant_id: TENANT_A,
-      role,
-      user_id: USER,
-      sample: { limit: 200, truncated: false, counts: {
-        PENDING: 0, LEASED: 0, COMPLETED: 2, FAILED: 0, BLOCKED: 1, DEAD_LETTER: 0
-      }},
-      dispatch: "DISABLED",
-      writes: "DISABLED"
-    });
+    throw new Error("Unexpected endpoint " + u.pathname);
   };
   return { fetchImpl, calls };
 }
@@ -145,7 +130,7 @@ test("no active membership denies access before queue lookup", async () => {
   assert.equal(response.statusCode, 403);
   assert.equal(response.body.reason, "NO_ACTIVE_TENANT_MEMBERSHIP");
   assert.equal(client.calls.length, 2);
-  assert.equal(client.calls[1].url.includes("/rpc/x1_read_operator_status"), true);
+  assert.equal(client.calls.some(c => c.url.includes("/rest/v1/x1_work_queue")), false);
 });
 test("viewer cannot inspect X1 operator queue", async () => {
   const client = fakeSupabase({ memberships: [{ tenant_id: TENANT_A, role: "VIEWER", status: "ACTIVE" }] });
@@ -271,7 +256,7 @@ test("deep health hides database credential failures and rejects write methods",
 });
 
 
-test("operator status works without a Vercel service-role key via staging RPC", async () => {
+test("operator status works without a Vercel service-role key via scoped RLS reads", async () => {
   const response = res();
   const client = fakeSupabase();
   const { SUPABASE_SERVICE_ROLE_KEY, ...publicOnlyEnv } = VALID;
@@ -280,7 +265,7 @@ test("operator status works without a Vercel service-role key via staging RPC", 
   });
   assert.equal(response.statusCode, 200);
   assert.equal(response.body.status, "STAGING_READ_VERIFIED");
-  assert.equal(client.calls[1].url.includes("/rpc/x1_read_operator_status"), true);
-  assert.equal(client.calls[1].headers.authorization, "Bearer fake-jwt");
-  assert.equal(client.calls[1].headers.apikey, VALID.SUPABASE_ANON_KEY);
+  assert.equal(client.calls.length, 4);
+  assert.equal(client.calls.every(c => c.headers.authorization === "Bearer fake-jwt"), true);
+  assert.equal(client.calls.every(c => c.headers.apikey === VALID.SUPABASE_ANON_KEY), true);
 });
