@@ -25,12 +25,13 @@ Branch-scoped Preview variables override the general Preview variables. Audit an
 ## Validation contract
 
 1. `GET /api/x1/health` returning `CONFIGURED_NOT_VALIDATED` proves only that the required variable names are present and the origin/runtime guard passed. It does not prove connectivity.
-2. `GET /api/x1/agent-config` returning `STAGING_CONFIGURED_NOT_AUTHENTICATED` confirms the server recognizes the staging origin and publishable key, but does not prove privileged database access.
-3. `GET /api/x1/operator-status` without a bearer token must return 401.
-4. A malformed bearer token must return 401 `AUTH_INVALID`, including Supabase Auth responses using HTTP 403 `bad_jwt`.
-5. A positive operator-status test requires a real Supabase Auth access token and an explicitly provisioned active staging tenant membership with an allowed role. It must never be faked by using service credentials as a user token.
-6. Verify the service credential with a read-only staging query, then test tenant isolation, missing membership, viewer role, cross-tenant denial, upstream failure, and ensure writes/dispatch remain disabled.
-7. Run tests/build on the PR Preview and perform independent validation before production promotion.
+2. `GET /api/x1/health?deep=1` performs one fixed, zero-row, read-only PostgREST request using the server-side staging credential. It returns only a generic pass/fail result and never returns rows or credential values. It is staging-preview-only.
+3. `GET /api/x1/agent-config` returning `STAGING_CONFIGURED_NOT_AUTHENTICATED` confirms the server recognizes the staging origin and publishable key, but does not prove privileged database access.
+4. `GET /api/x1/operator-status` without a bearer token must return 401.
+5. A malformed bearer token must return 401 `AUTH_INVALID`, including Supabase Auth responses using HTTP 403 `bad_jwt`.
+6. A positive operator-status test requires a real Supabase Auth access token and an explicitly provisioned active staging tenant membership with an allowed role. It must never be faked by using service credentials as a user token.
+7. Verify the service credential with a read-only staging query, then test tenant isolation, missing membership, viewer role, cross-tenant denial, upstream failure, and ensure writes/dispatch remain disabled.
+8. Run tests/build on the PR Preview and perform independent validation before production promotion.
 
 ## Current verified status
 
