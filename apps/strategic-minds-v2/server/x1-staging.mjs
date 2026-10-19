@@ -77,7 +77,7 @@ async function fetchJson(fetchImpl, url, key, bearer, errorCode) {
     throw new PublicApiError(503, "STAGING_UPSTREAM_UNAVAILABLE");
   }
   if (!response.ok) {
-    throw new PublicApiError(response.status === 401 && errorCode === "AUTH_INVALID" ? 401 : 503, errorCode);
+    throw new PublicApiError((response.status === 401 || response.status === 403) && errorCode === "AUTH_INVALID" ? 401 : 503, errorCode);
   }
   try {
     return await response.json();
