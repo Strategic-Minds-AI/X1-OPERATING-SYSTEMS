@@ -43,3 +43,10 @@ Branch-scoped Preview variables override the general Preview variables. Audit an
 - Supabase Auth returned HTTP 403 `bad_jwt` for a deliberately malformed bearer token. The API adapter originally translated this to 503; the accompanying patch normalizes it to 401 and adds a regression test.
 - The staging service credential still requires a successful read-only database probe. The existing Preview `SUPABASE_SERVICE_KEY` has not been proven to be a valid key for the staging project. Do not reuse production credentials to bypass this gate.
 - No production environment variables or production database objects were changed by this work.
+
+
+## Least-privilege fallback for operator status
+
+The staging migration `x1_operator_status_rpc_staging_20261019` adds `public.x1_read_operator_status(uuid)`. It is a `SECURITY DEFINER` function with an empty search path, fully qualified table references, and execute privileges only for `authenticated` (revoked from `PUBLIC` and `anon`). It verifies `auth.uid()`, active membership, role, tenant state, and returns a bounded status sample without writing or dispatching work. The Vercel operator-status route forwards the caller's bearer token and staging publishable key; it does not require the Vercel Preview service-role variable for this read-only path.
+
+Other staging endpoints that directly use `binding.serviceKey` still require a separately verified staging service credential or their own narrowly scoped RPC migration. The deep health probe intentionally continues to test the service-key path and can remain blocked until that broader credential dependency is resolved.
