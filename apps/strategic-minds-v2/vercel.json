@@ -11,16 +11,69 @@
         {
           "key": "Referrer-Policy",
           "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self' https://visual-x1.base44.app"
+        }
+      ]
+    },
+    {
+      "source": "/v2/:path*",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self' https://visual-x1.base44.app"
+        }
+      ]
+    },
+    {
+      "source": "/pricing",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self' https://visual-x1.base44.app"
+        }
+      ]
+    },
+    {
+      "source": "/portal",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self' https://visual-x1.base44.app"
         },
         {
-          "key": "X-Frame-Options",
-          "value": "SAMEORIGIN"
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        }
+      ]
+    },
+    {
+      "source": "/portal/:path*",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self' https://visual-x1.base44.app"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
         }
       ]
     },
     {
       "source": "/admin",
       "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self' https://visual-x1.base44.app"
+        },
         {
           "key": "X-Robots-Tag",
           "value": "noindex, nofollow, noarchive"
@@ -31,23 +84,9 @@
       "source": "/admin/:path*",
       "headers": [
         {
-          "key": "X-Robots-Tag",
-          "value": "noindex, nofollow, noarchive"
-        }
-      ]
-    },
-    {
-      "source": "/portal",
-      "headers": [
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex, nofollow, noarchive"
-        }
-      ]
-    },
-    {
-      "source": "/portal/:path*",
-      "headers": [
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self' https://visual-x1.base44.app"
+        },
         {
           "key": "X-Robots-Tag",
           "value": "noindex, nofollow, noarchive"

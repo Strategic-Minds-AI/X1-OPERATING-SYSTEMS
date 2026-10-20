@@ -14,7 +14,11 @@ export function assessDatabaseRoute(route) {
   if (!["staging", "production"].includes(target)) return { status: "BLOCKED", code: "INVALID_DATABASE_TARGET" };
   const expected = X1_TARGETS[target];
   if (supabaseProjectRef !== expected) return { status: "BLOCKED", code: "DATABASE_IDENTITY_MISMATCH" };
-  if (runtime === "production" && target !== "production") return { status: "BLOCKED", code: "PRODUCTION_BOUND_TO_STAGING" };
+  if (runtime === "production" && target !== "production") {
+    if (target === "staging" && route?.productionBindingEnabled === true && route?.readOnly === true)
+      return { status: "PASS", code: "EXPLICIT_PRODUCTION_READ_ONLY_STAGING_EXCEPTION" };
+    return { status: "BLOCKED", code: "PRODUCTION_BOUND_TO_STAGING" };
+  }
   if (runtime === "preview" && target !== "staging") return { status: "BLOCKED", code: "PREVIEW_BOUND_TO_PRODUCTION" };
   return { status: "PASS", code: "ENVIRONMENT_ISOLATED" };
 }

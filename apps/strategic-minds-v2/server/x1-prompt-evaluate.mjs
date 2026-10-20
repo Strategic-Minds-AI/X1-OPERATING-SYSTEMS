@@ -1,3 +1,4 @@
+import {rejectVisualXMutation} from "./x1-visualx-auth.mjs";
 import { PublicApiError, readStagingOperatorStatus, resolveStagingBinding, respond } from "./x1-staging.mjs";
 
 
@@ -69,8 +70,11 @@ export async function runPromptEvaluation(req,res,{env=process.env,fetchImpl=fet
  const declared=Number(req.headers?.["content-length"]??0);
  if(!Number.isFinite(declared)||declared>24000)return respond(res,413,{status:"BODY_TOO_LARGE"});
  try{
+  rejectVisualXMutation(req);
   const binding=resolveStagingBinding(env);
   if(!binding.ok)return respond(res,503,{status:"BLOCKED",reason:binding.code});
+  if(env.VERCEL_ENV==="production" && env.X1_PRODUCTION_WRITES_ENABLED!=="true")
+   throw new PublicApiError(403,"PRODUCTION_WRITES_DISABLED");
   const operator=await readStagingOperatorStatus(req,binding,fetchImpl);
   if(!["OWNER","ADMIN","BUILDER"].includes(operator.role))throw new PublicApiError(403,"PROMPT_EVALUATION_ROLE_REQUIRED");
   const input=validateEvaluationInput(bodyOf(req));
