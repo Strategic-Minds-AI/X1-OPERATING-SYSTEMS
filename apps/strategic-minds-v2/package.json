@@ -14,7 +14,8 @@
     "test:commerce": "node tests/pricing-portal-browser.mjs",
     "test:studio": "node tests/visual-studio-brand-browser.mjs",
     "test:agent": "node tests/x1-admin-agent-browser.mjs",
-    "test:workspaces": "node tests/x1-native-workspaces-browser.mjs"
+    "test:workspaces": "node tests/x1-native-workspaces-browser.mjs",
+    "test:academy:browser": "node tests/x1-template-academy-browser.mjs"
   },
   "dependencies": {
     "lucide-react": "0.475.0",
