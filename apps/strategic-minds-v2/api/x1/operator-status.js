@@ -1,3 +1,4 @@
+import {readOperatorOrVisualX} from "../../server/x1-visualx-auth.mjs";
 import {
   PublicApiError, readBearer, readStagingOperatorStatus, resolveStagingBinding, respond
 } from "../../server/x1-staging.mjs";
@@ -11,7 +12,7 @@ export async function runOperatorStatus(req, res, { env = process.env, fetchImpl
     readBearer(req.headers);
     const binding = resolveStagingBinding(env);
     if (!binding.ok) return respond(res, 503, { status: "UNBOUND", reason: binding.code });
-    const result = await readStagingOperatorStatus(req, binding, fetchImpl);
+    const result = await readOperatorOrVisualX(req, binding, fetchImpl, {env,route:"operator-status",readUser:readStagingOperatorStatus});
     return respond(res, 200, result);
   } catch (err) {
     if (err instanceof PublicApiError) {
