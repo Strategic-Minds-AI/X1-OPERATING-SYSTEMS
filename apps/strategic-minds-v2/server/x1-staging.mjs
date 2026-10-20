@@ -14,7 +14,8 @@ export class PublicApiError extends Error {
 }
 
 export function resolveStagingBinding(env = {}) {
-  if (env.VERCEL_ENV !== "preview" && env.VERCEL_ENV !== "development") {
+  if (env.VERCEL_ENV !== "preview" && env.VERCEL_ENV !== "development" &&
+      !(env.VERCEL_ENV === "production" && env.X1_PRODUCTION_BINDING_ENABLED === "true")) {
     return { ok: false, code: "NON_PREVIEW_RUNTIME" };
   }
   if (!env.SUPABASE_URL) return { ok: false, code: "MISSING_STAGING_BINDING" };
