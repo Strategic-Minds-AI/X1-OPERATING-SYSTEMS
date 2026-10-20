@@ -1,3 +1,4 @@
+import {readOperatorOrVisualX} from "./x1-visualx-auth.mjs";
 // X1 admin command/chat bridge. PREVIEW and exact X1 Staging only.
 // A ChatGPT-like API conversation is NOT the user's private chatgpt.com session.
 // No model tool calls, job dispatch, protected mutation, secret exposure, or new cron.
@@ -79,13 +80,14 @@ async function readTurns(binding,fetchImpl,operator,sessionId){
 }
 export async function listAgentConversations(req,{env=process.env,fetchImpl=fetch}={}){
   const binding=verifyChatRuntime(env);
-  const operator=await operatorContext(req,binding,fetchImpl);
+  const operator=await readOperatorOrVisualX(req,binding,fetchImpl,{env,route:"agent-sessions",readUser:operatorContext});
   // Session discovery is bounded and scoped to the authenticated operator, not
   // the whole tenant. No message content leaves the provider from this route.
+  const service=operator.service_identity==="visual-x-read";
   const turns=await rest(binding,fetchImpl,urlFor(binding,CHAT_TABLE,{
-    select:"session_id,role,content,created_at",
+    select:service?"session_id,role,created_at":"session_id,role,content,created_at",
     tenant_id:"eq."+operator.tenant_id,
-    actor_user_id:"eq."+operator.user_id,
+    ...(service?{}:{actor_user_id:"eq."+operator.user_id}),
     order:"created_at.desc",limit:"240"
   }));
   const sessions=new Map();
@@ -98,7 +100,7 @@ export async function listAgentConversations(req,{env=process.env,fetchImpl=fetc
       preview:"X1 conversation"
     });
     const current=sessions.get(id);
-    if(t.role==="user" && current.preview==="X1 conversation"){
+    if(!service && t.role==="user" && current.preview==="X1 conversation"){
       current.preview=String(t.content??"").slice(0,100);
     }
   }
