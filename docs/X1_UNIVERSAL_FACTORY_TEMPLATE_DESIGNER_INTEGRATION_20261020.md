@@ -14,7 +14,7 @@ Implement the owner-controlled Universal Factory Academy template design technol
 - Canonical X1 repository: https://github.com/Strategic-Minds-AI/X1-OPERATING-SYSTEMS
 - X1 integration branch: feature/x1-universal-factory-template-designer-20261020, based on feature/x1-public-real-portal-20261020.
 - X1 frontend root apps/strategic-minds-v2. X1 project prj_PIDgTashnTCpsWbKUBCjHz55yXqT.
-- Verified X1 source preview: https://x1-operating-system-7ji2a88jl-strategic-minds-advisory.vercel.app/admin/template-designer, auto deployment source 9f74239251fd0e491065ca8dfebfde0b10842074.
+- Verified X1 current feature preview: https://x1-operating-system-8h398mh99-strategic-minds-advisory.vercel.app/admin/template-designer, READY deployment source 760442c79c160b4ffde049390dfb954881b8e5c2. Initial browser-tested preview URL: https://x1-operating-system-7ji2a88jl-strategic-minds-advisory.vercel.app/admin/template-designer, SHA 9f74239251fd0e491065ca8dfebfde0b10842074.
 - Visual X connected app 6ad5e96eb2cfcf9aafe9f1df, authenticated /academy-templates page.
 - Base44 Visual X restorable checkpoint 6ad76340367e0501f7db4faf, git commit 8e4cc9d0246266b3fa5524b08b74613a2c6926a6.
 
@@ -28,7 +28,7 @@ Implement the owner-controlled Universal Factory Academy template design technol
 
 ## Acceptance evidence
 - PASS — Donor Academy npm run check: 14/14 tests, built 40 master sites and 36 tailored versions.
-- PASS — X1 npm run check: 150/150 tests, 0 failures, Vite production build exit 0 at source head d27e6e9de880693ee45180686c6969c794205301, before adding screenshots and this document. Re-run check on final head.
+- PASS — X1 npm run check: 150/150 tests, 0 failures, Vite production build exit 0 at source head 760442c79c160b4ffde049390dfb954881b8e5c2, after screenshot evidence and initial workbook commit. A docs-only adjustment follows, so final exact head readback remains required.
 - PASS — Live X1 preview /admin/template-designer HTTP200 and CSP frame-ancestors allows https://visual-x1.base44.app.
 - PASS — Live API /api/x1/template-academy kind=catalog HTTP200, JSON length ~36,819 bytes; kind=academies HTTP200, JSON length ~7,844; kind=template&id=split-left&academy=epoxy HTTP200 HTML length ~18,732 bytes; all source SHA headers matched the donor release.
 - PASS — Live Chromium test npm run test:academy:browser: 8/8 checks, 0 console/page/API errors, 40 designs, six epoxy choices, brand edit reflected in HTML, 390px real viewport, HTML export, legal industry switching, 200 for the page.
@@ -51,7 +51,7 @@ Implement the owner-controlled Universal Factory Academy template design technol
 - [x] Pass X1 tests, Academy build, Visual X build/lint, live API checks.
 - [x] Pass 8-point Chromium acceptance with saved desktop and mobile PNGs.
 - [x] Persist immutable evidence in X1 GitHub.
-- [ ] Re-run npm run check on final GitHub SHA, verify latest READY preview SHA.
+- [x] Ran npm run check after evidence commit: 150/150 PASS, and Vercel confirmed READY source 760442c79c160b4ffde049390dfb954881b8e5c2. A final docs-only commit requires readback.
 - [ ] Run independent Guardian QA on exact final SHA, including 868px tablet and export actual file bytes.
 - [ ] Resolve existing X1 release and auth gates; promote exact QA-approved SHA with rollback receipt; verify production-domain results.
 - [ ] Verify Visual X published route after successful Base44 checkpoint.
@@ -64,3 +64,9 @@ Implement the owner-controlled Universal Factory Academy template design technol
 - Incremental execution cost is only reads to existing Academy static Vercel origin; zero new databases, paid model calls, jobs, scheduling or workers.
 - Visual X existing typecheck debt is out of scope; build/lint pass does not mean all application diagnostics pass.
 - Rehydrate this workbook, previous X1 production handoffs and donor docs/BRIDGE_CONTRACT.md. For continuation, verify repo SHA/branch and Vercel deployment, run tests, obtain independent QA, then explicitly handle release approval. Dehydrate with receipts, newest SHA and truthful state.
+
+## Latest cross-application readback
+- Live newest preview HTTP200: /admin/template-designer with frame-ancestors allowing visual-x1.base44.app; /api/x1/template-academy?kind=catalog HTTP200 source SHA header exact; epoxy template HTML HTTP200.
+- Visual X Base44 latest checkpoint: 6ad766cc6b2e687d8c992686 and source git 1de7c7d45155c73b5ff52a7193d901ced277071f. Visual X build/lint pass. Embedded X1 URL updated from initial QA preview to newest READY preview.
+- Visual X published URL /academy-templates HTTP200 SPA shell, but successful authenticated browser session and completed iframe editing there are not independently verified. Do not confuse HTTP200 with authenticated functional acceptance.
+- GitHub recursive-tree readback verified committed PNG sizes desktop=484223 bytes, mobile=523853 bytes and receipt=793 bytes, with expected blob SHA values. No fabricated screenshot or local-only evidence claim.
