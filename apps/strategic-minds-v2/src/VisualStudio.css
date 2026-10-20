@@ -194,3 +194,17 @@
 @media(max-width:1130px){.x1-studio .x1-surface-h1{font-size:clamp(29px,3.5vw,43px)}}
 .x1-studio .x1-frame-mobile .x1-surface-h1{font-size:clamp(30px,8vw,40px)}
 @media(max-width:600px){.x1-studio .x1-surface-h1{font-size:clamp(30px,7vw,39px)}}
+
+
+/* Visual X: X1-branded, right-hand sliding tools drawer */
+.x1-stage .x1-tools-drawer{position:absolute;right:0;top:0;bottom:0;width:min(330px,calc(100% - 32px));z-index:9;transform:translateX(103%);opacity:0;visibility:hidden;pointer-events:none;transition:transform .28s ease,opacity .22s ease,visibility .28s ease;box-shadow:-22px 0 50px rgba(0,0,0,.32)}
+.x1-stage .x1-tools-drawer.is-open{transform:translateX(0);opacity:1;visibility:visible;pointer-events:auto}
+.x1-stage .x1-tools-drawer .x1-inspector{width:100%;height:100%;background:linear-gradient(160deg,#071c31,#04101f 88%);border-left:1px solid rgba(66,202,246,.45);box-shadow:inset 3px 0 22px rgba(12,149,211,.06)}
+.x1-tools-trigger{display:inline-flex!important;align-items:center;gap:7px;width:auto!important;height:34px!important;padding:0 12px!important;border-radius:9px!important;border:1px solid rgba(91,218,255,.42)!important;background:#0c3148!important;color:#bcefff!important;font-size:10px!important;font-weight:800!important;letter-spacing:.07em}
+.x1-tools-trigger:hover{background:#12435e!important}
+.x1-studio .x1-chat{background:linear-gradient(160deg,#061a2e,#03101e 76%);border-right:1px solid rgba(67,184,230,.3)}
+.x1-studio .x1-chat-head{background:linear-gradient(110deg,#09263e,#06192b)}
+.x1-studio .x1-editor{background:#04101c}
+.x1-studio .x1-chat-compose{border-color:rgba(80,214,246,.5)}
+@media(max-width:700px){.x1-stage .x1-tools-drawer{width:min(340px,calc(100% - 18px))}.x1-tools-trigger{font-size:0!important;gap:0}.x1-tools-trigger svg{width:17px;height:17px}}
+@media(prefers-reduced-motion:reduce){.x1-stage .x1-tools-drawer{transition:none}}
