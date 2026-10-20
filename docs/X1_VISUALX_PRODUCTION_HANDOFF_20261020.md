@@ -23,7 +23,7 @@ State: **SOURCE CHECK PASS; PRODUCTION NOT RELEASED; LIVE BINDING NOT VERIFIED**
 8. Prompt evaluate remains **NOT AVAILABLE IN PRODUCTION — local runtime only**.
 
 ## Environment names and provisioning state
-- X1 production SUPABASE_URL: present but identity UNKNOWN; do NOT change without provider owner verification. SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY: present metadata only, identity unknown.
+- X1 production SUPABASE_URL: present and its exact origin was VERIFIED to match the pinned staging project via targeted Vercel env inspection without outputting the value. Do not change without provider owner verification. SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY: present metadata only, identity unknown.
 - X1 production X1_PRODUCTION_BINDING_ENABLED: NOT SET.
 - X1 production X1_VISUALX_READ_ENABLED: NOT SET.
 - X1 production X1_VISUALX_TENANT_ID: NOT SET.
@@ -47,14 +47,14 @@ NO live production read-only token request or 200 data response was verified.
 ## Test evidence (isolated clone in Base44 sandbox)
 - First npm run check: 143 tests, 141 passed, 2 failed due to duplicate CSP and noindex header route objects. Repaired by merging headers on identical sources rather than deleting tests or weakening headers.
 - Second npm run check: **PASS**, 143/143 node tests, 0 failures, vite build succeeded with 1611 modules. Build SEO policy returned NOINDEX_SAFE_DEFAULT, sitemapPublished false. Exact code commit tested: 73e0a556197625e47bc22787899b0c76799580fa.
-- Visual X separate Base44 npm run build: exit 0, caniuse-lite data age warning.
+- Visual X separate Base44 npm run build: exit 0, caniuse-lite data age warning. Checkpoint ID 6ad75219afdab34c03e28f2c, underlying commit b0d0449b0fa41733fa229817113a5d9c07eb5fa4.
 - No live RLS or token credential tests; mocked deterministic tests only. No Guardian independent signed receipt yet.
-- Browser parity blocker: downloaded Chrome Headless Shell v155, Puppeteer launch failed on missing libglib-2.0.so.0 in isolated sandbox. No parity image was fabricated.
+- Browser parity blocker in Linux: Chrome Headless Shell v155 lacked libglib-2.0.so.0, so switched to authorized local JARVIS Chrome and captured all 36 PNGs in isolated C:\\_Strategic_Minds_AI_OS\\08_SANDBOX\\X1_VISUALX_PARITY_20261020\\apps\\strategic-minds-v2\\public\\v2-assets\\parity. Local manifest reports 33 of 36 captures with non-empty DOM text; all 36 have actual PNG bytes (~24.6 MB), three Prompt Lab captures have EMPTY DOM and must be retried. 24 of 36 HTTP navigations returned 304 (cache revalidated, not a missing page); validate actual rendered body, not HTTP=200 alone. Screenshots are NOT committed to GitHub, NOT in Vercel assets, and not a parity acceptance PASS. JARVIS later became intermittently unresponsive.
 - Production source path mismatch: architecture documents default main branch has README and not apps/strategic-minds-v2. Resolve prior to production release.
 - Latest READY production metadata is NOT source commit release approval, and a production-target deployment 403 occurred on list_deployments.
 
 ## Responsive parity contract — required NOT YET CAPTURED
-All screenshots full page at desktop1440/tablet868/mobile390, PNG in apps/strategic-minds-v2/public/v2-assets/parity. There are 36 captures for 12 URLs:
+All screenshots full page at desktop1440/tablet868/mobile390, PNG in apps/strategic-minds-v2/public/v2-assets/parity. Local capture exists but has not been committed; 3 blank Prompt Lab pages and HTTP304 cache revalidations require review. There are 36 captures for 12 URLs:
 - v2-a: /v2/a
 - v2-b: /v2/b
 - v2-c: /v2/c
@@ -78,9 +78,9 @@ Filename template: {slug}-{desktop|tablet|mobile}.png. URL is not valid until bi
 - [x] CSP allowlist and noindex preservation.
 - [x] npm run check: 143/143 PASS on tested code SHA.
 - [x] Visual X frontend/backend sandbox code updated; app build passed.
-- [ ] Complete Base44 checkpoint and verify readback.
+- [x] Base44 checkpoint persisted (6ad75219afdab34c03e28f2c); source app build passed. Publication still pending.
 - [ ] Real tenant token securely provisioned, verified production 200 real read data.
-- [ ] All 36 viewport PNG screenshots, source, dimension and served-URL readbacks.
+- [ ] All 36 viewport PNG screenshots: local 36 PNGs generated, 33 visible, 3 blank Prompt Lab; not pushed, no production served-URL readback.
 - [ ] Independent Guardian browser, auth, cross-tenant, audit and RLS validation on exact release SHA.
 - [ ] Resolve main-branch/app-root mismatch, approved prod release, rollback, verified post-deploy CSP.
 - [ ] Deliberately publish Visual X and test server-only secret + iframe login behavior.
@@ -96,3 +96,10 @@ Filename template: {slug}-{desktop|tablet|mobile}.png. URL is not valid until bi
 ## Handoff / continuity
 Next: obtain Chromium-capable browser (e.g., existing authorized JARVIS Chrome) and capture 36 truthful full-page PNGs. Run independent Guardian validation against a preview deployment. Reconcile Vercel repo/branch/root/rollback. Approve existing active X1 tenant ID, issue 32-byte read secret privately, write only its hash to x1_service_auth_hashes and plaintext only to protected Visual X server secrets. Explicitly enable read-only flag after readback. Keep X1 production writes + dispatch DISABLED. Re-run npm check on final branch SHA, get release approval and deploy, read back status, JSON keys and CSP, and append release receipts here.
 Hydrate using this file and original three contracts. Never claim live/independent acceptance from mocked tests. Cloud/local/GPT Project sync not verified.
+
+## Live feature preview discovery / verification
+- Vercel automatic READY preview for tested commit 68047e2b33a8c0940d0b6608713500d20e4aefd0: https://x1-operating-system-1avl0pd2e-strategic-minds-advisory.vercel.app (deployment dpl_FnzKEUBzk7KbSYqRU2Hw83ZTYsLd).
+- Real GET /v2/b at this preview: HTTP200 with Content-Security-Policy: frame-ancestors 'self' https://visual-x1.base44.app, X-Robots-Tag noindex. No X-Frame-Options found.
+- Real GET /api/x1/health at this preview: HTTP200, status CONFIGURED_NOT_VALIDATED, target X1_STAGING_ONLY, writes DISABLED, dispatch DISABLED. Does NOT prove database reads.
+- Production live domain still served old 503 NON_PREVIEW_RUNTIME and XFO SAMEORIGIN at the time of verification.
+- The Visual X iframe currently targets production domain; until X1 production release, users should navigate to verified preview directly to inspect parity and frame policy. No production release performed.
