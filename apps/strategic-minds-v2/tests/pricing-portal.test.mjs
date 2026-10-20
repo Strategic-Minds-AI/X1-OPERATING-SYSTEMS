@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 const r=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 test('pricing and portal URLs are mounted on standalone X1 frontend',()=>{
  const main=r('../src/main.jsx');
- for(const path of ['"/pricing"','"/portal"','"/portal/demo"'])assert.ok(main.includes(path),path);
+ for(const path of ['"/pricing"','"/portal"'])assert.ok(main.includes(path),path);
 });
 test('marketing nav leads to pricing and portal without changing original visual hero',()=>{
  const src=r('../src/V2Experience.jsx');
@@ -17,11 +17,11 @@ test('proposed pricing is clearly custom and never misrepresents live checkout',
  for(const word of ['AI Launch','AI Growth','AI Enterprise','Custom quote','No approved public dollar pricing','Nothing is automatically sent','DISCOVERY-FIRST PRICING'])assert.ok(p.includes(word),word);
  assert.doesNotMatch(p,/stripe\.com|checkout\.sessions|fetch\(|PaymentIntent|base44/i);
 });
-test('portal demo has explicit privacy gate, synthetic-only examples and local-only approvals',()=>{
+test('portal authenticates existing X1 tenant members and reads actual bounded tenant data, no synthetic lead or approval records',()=>{
  const p=r('../src/ClientPortalExperience.jsx');
- for(const word of ['SYNTHETIC DATA','No authentication','No live billing','demo','NO LIVE TASKS','REQUEST ACCESS'])assert.ok(p.toLowerCase().includes(word.toLowerCase()),word);
- assert.ok(p.includes("setApprovals(s=>({...s,[id]:value}))"));
- assert.doesNotMatch(p,/\bfetch\(|\blocalStorage|\bsessionStorage|\baxios\.|window\.location\.assign/);
+ for(const word of ['/api/x1/agent-config','/auth/v1/otp','/auth/v1/verify','/api/x1/operator-status','/api/x1/work-items','TENANT_SCOPE_UNVERIFIED'])assert.ok(p.includes(word),word);
+ assert.doesNotMatch(p,/Sample Inquiry 001|APPROVAL_ITEMS|SYNTHETIC DATA|APPROVE IN DEMO|Demo Company/);
+ assert.doesNotMatch(p,/\blocalStorage|\bsessionStorage|window\.location\.assign/);
 });
 test('preview stays noindex while approved production marketing routes may be indexed',()=>{
  const v=JSON.parse(r('../vercel.json'));
@@ -39,5 +39,5 @@ test('preview stays noindex while approved production marketing routes may be in
 test('commerce pages retain reduced-motion rules and source assets',()=>{
  const css=r('../src/CommercePortal.css');
  assert.match(css,/prefers-reduced-motion:reduce/);
- assert.ok(r('../src/ClientPortalExperience.jsx').includes('/v2-assets/eden-skye-original.avif'));
+ assert.ok(r('../src/ClientPortalExperience.jsx').includes('/v2-assets/silver-emblem.png'));
 });
