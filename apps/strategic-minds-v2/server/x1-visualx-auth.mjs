@@ -66,9 +66,19 @@ export async function readVisualXOperator(req,binding,fetchImpl,{env,route}){
  if(!Array.isArray(records)||records.length!==1||
      records[0].receipt_id!==receiptId||records[0].tenant_id!==tenantId)
   throw new PublicApiError(503,"VISUALX_READ_AUDIT_UNVERIFIED");
+ let sample;
+ if(route==="operator-status"){
+  const rows=await json(fetchImpl,rest(binding.origin,"x1_work_queue",{
+   select:"status",tenant_id:"eq."+tenantId,order:"updated_at.desc",limit:"201"
+  }),{method:"GET",headers:keyHeaders(binding.serviceKey)},"STAGING_QUEUE_UNAVAILABLE");
+  if(!Array.isArray(rows))throw new PublicApiError(503,"STAGING_INVALID_RESPONSE");
+  const counts=Object.fromEntries(["PENDING","LEASED","COMPLETED","FAILED","BLOCKED","DEAD_LETTER"].map(x=>[x,0]));
+  for(const row of rows.slice(0,200))if(Object.hasOwn(counts,row.status))counts[row.status]++;
+  sample={limit:200,truncated:rows.length>200,counts};
+ }
  return {status:"STAGING_READ_VERIFIED",tenant_id:tenantId,
   role:"ADMIN",user_id:null,service_identity:SERVICE,audit_id:records[0].audit_id,
-  writes:"DISABLED",dispatch:"DISABLED"};
+  ...(sample?{sample}:{}),writes:"DISABLED",dispatch:"DISABLED"};
 }
 export function isVisualXReadRequest(req){
  const v=req?.headers?.authorization??req?.headers?.Authorization;
