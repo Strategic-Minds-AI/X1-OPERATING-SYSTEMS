@@ -1,5 +1,5 @@
 // One admin command -> existing X1 Staging x1_enqueue_work. No extra queue.
-import {createHash} from "node:crypto";
+import {createHash,randomUUID} from "node:crypto";
 import {PREMIUM_FLOORING_PREVIEW_HTML} from "./x1-preview-demo-template.mjs";
 import {PublicApiError} from "./x1-staging.mjs";
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -15,8 +15,12 @@ export function previewPrompt(message){
  return null;
 }
 export function previewReady(env={}){
- return env.VERCEL_ENV==="preview"&&env.X1_PREVIEW_DISPATCH_ENABLED==="true"&&
-   env.X1_DB_COMPLETION_FENCING_PASS==="true"&&env.X1_PREVIEW_WORKER_READY==="true";
+ const preview=env.VERCEL_ENV==="preview"&&env.X1_PREVIEW_DISPATCH_ENABLED==="true";
+ const production=env.VERCEL_ENV==="production"&&env.X1_PRODUCTION_BINDING_ENABLED==="true"&&
+  env.X1_PRODUCTION_DISPATCH_ENABLED==="true"&&env.X1_PRODUCTION_WRITES_ENABLED==="true"&&
+  env.X1_PRODUCTION_DISPATCH_AUDIT_ENABLED==="true";
+ return (preview||production)&&env.X1_DB_COMPLETION_FENCING_PASS==="true"&&
+  env.X1_PREVIEW_WORKER_READY==="true";
 }
 export function compilePremiumPreview(message){
  const prompt=previewPrompt(message);
@@ -71,6 +75,27 @@ export async function dispatchPreviewFromChat({binding,operator,message,sessionI
   if(!r.ok)throw new PublicApiError(503,"X1_PREVIEW_QUEUE_RPC_FAILED");
   try{return await r.json();}catch{throw new PublicApiError(503,"X1_PREVIEW_QUEUE_JSON_INVALID");}
  }
+ // In production, require a durable audit receipt BEFORE touching the canonical queue.
+ const prod=env.VERCEL_ENV==="production";
+ async function audit(stage,workId=null){
+  const receiptId=randomUUID();
+  let response;
+  try{response=await fetchImpl(STAGING+"/rest/v1/x1_audit_receipts?select=audit_id,receipt_id,tenant_id",{
+   method:"POST",redirect:"error",signal:AbortSignal.timeout(7000),
+   headers:{apikey:binding.serviceKey,authorization:"Bearer "+binding.serviceKey,
+    accept:"application/json","content-type":"application/json",prefer:"return=representation"},
+   body:JSON.stringify([{tenant_id:operator.tenant_id,receipt_type:"X1_PRODUCTION_PREVIEW_DISPATCH",
+    receipt_id:receiptId,source_system:"x1-admin",
+    source_sha:BASE_SHA,payload:{stage,work_id:workId,request_id:requestId,
+     idempotency_key:key,actor_user_id:operator.user_id,release_mode:"preview"}}])});
+  }catch{throw new PublicApiError(503,"X1_PRODUCTION_DISPATCH_AUDIT_UNAVAILABLE");}
+  if(!response.ok)throw new PublicApiError(503,"X1_PRODUCTION_DISPATCH_AUDIT_UNAVAILABLE");
+  let rows;try{rows=await response.json();}catch{throw new PublicApiError(503,"X1_PRODUCTION_DISPATCH_AUDIT_INVALID");}
+  if(!Array.isArray(rows)||rows.length!==1||rows[0].receipt_id!==receiptId||
+     rows[0].tenant_id!==operator.tenant_id)
+   throw new PublicApiError(503,"X1_PRODUCTION_DISPATCH_AUDIT_INVALID");
+ }
+ if(prod)await audit("PRE_ENQUEUE");
  const workId=await call(STAGING+"/rest/v1/rpc/x1_enqueue_work","POST",{p_work:work});
  if(typeof workId!=="string"||!UUID.test(workId))
   throw new PublicApiError(503,"X1_PREVIEW_WORK_ID_UNVERIFIED");
@@ -81,6 +106,7 @@ export async function dispatchPreviewFromChat({binding,operator,message,sessionI
   rows[0].tenant_id!==operator.tenant_id||rows[0].task_id!==work.task_id||
   rows[0].source_sha!==BASE_SHA||rows[0].idempotency_key!==key)
   throw new PublicApiError(503,"X1_PREVIEW_QUEUE_READBACK_MISMATCH");
+ if(prod)await audit("QUEUED_READBACK_VERIFIED",workId);
  return Object.freeze({status:"QUEUED_NOT_DEPLOYED",workId,
    queueStatus:rows[0].status,sourceSha:BASE_SHA,htmlSha256:code.sha256});
 }
