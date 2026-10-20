@@ -102,9 +102,9 @@ export async function runWorkItems(req, res, { env = process.env, fetchImpl = fe
   try {
     const binding = resolveStagingBinding(env);
     if (!binding.ok) return respond(res, 503, { status: "UNBOUND", reason: binding.code });
+    if(req.method!=="GET")rejectVisualXMutation(req);
     if (env.VERCEL_ENV === "production" && req.method !== "GET" && env.X1_PRODUCTION_WRITES_ENABLED !== "true")
       throw new PublicApiError(403, "PRODUCTION_WRITES_DISABLED");
-    if(req.method!=="GET")rejectVisualXMutation(req);
     const operator = req.method==="GET" && isVisualXReadRequest(req)
       ? await readVisualXOperator(req,binding,fetchImpl,{env,route:"work-items"})
       : await resolveOperator(req, binding, fetchImpl);
