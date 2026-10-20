@@ -5,7 +5,7 @@
 
 ## Non-negotiable architecture rules
 
-1. **No Base44 runtime dependency.** X1 application code, authentication, database, queues, workers, secrets, logs, and deployment workflows must operate without Base44. Existing Base44 apps may be read as legacy sources for export/migration only; they are not runtime dependencies.
+1. **No Base44 dependency in the X1 control plane.** X1's application code, authentication, database, queues, workers, secrets, logs, and deployment workflows must keep operating with zero Base44 involvement. A Base44-based operator surface (Visual X) MAY act as a read-only client and cockpit over X1's API: it may read X1's status and inventory through a scoped, revocable read token, and may link to X1's own screens. It must never own X1's queue, workers, authentication, secrets, or deployment, and it must never receive an X1 service key.
 2. **One durable orchestration authority.** Reuse the canonical X1 Supabase queue, leases, idempotency keys, execution ledger, audit receipts, and existing Railway worker plane. Do not create a second queue, scheduler, supervisor, heartbeat, or agent registry.
 3. **Preview-first releases.** Each generated site receives a source SHA, tenant/site identity, Vercel preview, synthetic test data, browser QA, security/SEO checks, independent validation receipt, and rollback pointer before any production release.
 4. **No fabricated autonomy.** A queued task is not a running task; a Vercel READY deployment is not a validated website; an agent self-review is not independent factual validation; a healthy heartbeat is not proof of successful business execution.
