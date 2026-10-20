@@ -8,6 +8,8 @@ export async function runAgentChat(req,res,{env=process.env,fetchImpl=fetch}={})
   try {
     readBearer(req.headers);
     verifyChatRuntime(env);
+    if(req.method==="POST" && env.VERCEL_ENV==="production" && env.X1_PRODUCTION_WRITES_ENABLED!=="true")
+      throw new PublicApiError(403,"PRODUCTION_WRITES_DISABLED");
     if(req.method==="POST"){
       const declared=Number(req.headers?.["content-length"]??0);
       if(!Number.isFinite(declared)||declared>9000)throw new PublicApiError(413,"CHAT_BODY_TOO_LARGE");
