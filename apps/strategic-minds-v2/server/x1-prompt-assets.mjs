@@ -34,9 +34,9 @@ export async function runPromptAssets(req,res,{env=process.env,fetchImpl=fetch}=
  try{
   const binding=resolveStagingBinding(env);
   if(!binding.ok)return respond(res,503,{status:"UNBOUND",reason:binding.code});
+  if(req.method!=="GET")rejectVisualXMutation(req);
   if(env.VERCEL_ENV==="production" && req.method!=="GET" && env.X1_PRODUCTION_WRITES_ENABLED!=="true")
    throw new PublicApiError(403,"PRODUCTION_WRITES_DISABLED");
-  if(req.method!=="GET")rejectVisualXMutation(req);
   const operator=await readOperatorOrVisualX(req,binding,fetchImpl,{env,route:"prompt-assets",readUser:readStagingOperatorStatus});
   if(!["OWNER","ADMIN","BUILDER"].includes(operator.role))throw new PublicApiError(403,"PROMPT_WRITE_ROLE_REQUIRED");
   const table=urlFor(binding,{select:"asset_id,title,prompt_text,category,status,version,metadata,created_at,updated_at"});
