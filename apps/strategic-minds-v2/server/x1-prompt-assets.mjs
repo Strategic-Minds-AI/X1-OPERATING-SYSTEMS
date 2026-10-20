@@ -1,3 +1,4 @@
+import {readOperatorOrVisualX,rejectVisualXMutation} from "./x1-visualx-auth.mjs";
 import { PublicApiError, readStagingOperatorStatus, resolveStagingBinding, respond } from "./x1-staging.mjs";
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -35,7 +36,8 @@ export async function runPromptAssets(req,res,{env=process.env,fetchImpl=fetch}=
   if(!binding.ok)return respond(res,503,{status:"UNBOUND",reason:binding.code});
   if(env.VERCEL_ENV==="production" && req.method!=="GET" && env.X1_PRODUCTION_WRITES_ENABLED!=="true")
    throw new PublicApiError(403,"PRODUCTION_WRITES_DISABLED");
-  const operator=await readStagingOperatorStatus(req,binding,fetchImpl);
+  if(req.method!=="GET")rejectVisualXMutation(req);
+  const operator=await readOperatorOrVisualX(req,binding,fetchImpl,{env,route:"prompt-assets",readUser:readStagingOperatorStatus});
   if(!["OWNER","ADMIN","BUILDER"].includes(operator.role))throw new PublicApiError(403,"PROMPT_WRITE_ROLE_REQUIRED");
   const table=urlFor(binding,{select:"asset_id,title,prompt_text,category,status,version,metadata,created_at,updated_at"});
   if(req.method==="GET"){
