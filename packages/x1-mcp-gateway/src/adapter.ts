@@ -22,6 +22,7 @@ export async function adapterCall(group: string, operation: string, input: ToolP
       tenant_id: input.tenantId, actor_id: principal.actorId, subject: input.subject ?? "",
       operation, dry_run: true, allowed_environment: "staging", publication_allowed: false
     }),
+    redirect: "error",
     signal: AbortSignal.timeout(12000)
   });
   if (!response.ok) throw new Error("ADAPTER_HTTP_" + response.status);
