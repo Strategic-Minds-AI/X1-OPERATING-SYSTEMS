@@ -1,0 +1,37 @@
+/* Native X1 command panel inside the Visual X workspace. No global selectors. */
+.x1-native-chat{height:100%;min-height:0;display:flex;flex-direction:column;color:#eaf5ff;background:linear-gradient(150deg,#061323,#071a31);font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+.x1-native-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 17px 14px;border-bottom:1px solid #1b3652}
+.x1-native-head>div{display:flex;align-items:center;gap:10px}
+.x1-native-head strong{display:block;font-size:15px;letter-spacing:-.02em}
+.x1-native-head small{display:block;color:#9bbcd5;font-size:10px;letter-spacing:.07em;margin-top:3px}
+.x1-native-status{color:#c4d7e6;border:1px solid #2b465f;background:#09243d;padding:5px 8px;border-radius:15px;font-size:9px;font-weight:700;white-space:nowrap}
+.x1-native-status.is-verified{border-color:#176c56;color:#91f5c8;background:#0a2a28}
+.x1-native-gate{flex:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:26px;gap:12px;overflow:auto}
+.x1-native-gate svg{color:#63dbff}.x1-native-gate h3{margin:0;font-size:21px;line-height:1.2}
+.x1-native-gate p{color:#bbcedf;font-size:13px;line-height:1.6;margin:0}.x1-native-gate small{font-size:11px;color:#9ab2c6;overflow-wrap:anywhere}
+.x1-native-gate a,.x1-native-gate form button,.x1-native-compose button{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#0ab9eb;color:#042139;padding:11px 16px;border:0;border-radius:8px;font-weight:800;font-size:12px;text-decoration:none}
+.x1-native-gate form{width:100%;display:flex;flex-direction:column;gap:7px;margin:6px 0}.x1-native-gate label,.x1-native-compose label{font-size:11px;font-weight:700;color:#dbefff}
+.x1-native-gate input,.x1-native-compose textarea{min-height:42px;background:#071326;color:#f4fbff;border:1px solid #315270;border-radius:7px;padding:10px;resize:vertical}
+.x1-native-gate button:disabled,.x1-native-compose button:disabled{opacity:.5;cursor:not-allowed}
+.x1-native-tools{display:flex;gap:8px;padding:8px 14px;border-bottom:1px solid #1a3850}
+.x1-native-tools button{display:inline-flex;align-items:center;gap:5px;background:#0d2942;border:1px solid #294762;color:#c8e8fc;border-radius:6px;padding:7px 10px;font-size:10px}
+.x1-native-log{min-height:100px;overflow-y:auto;flex:1;padding:14px;display:flex;flex-direction:column;gap:10px}
+.x1-native-log article{border:1px solid #284861;border-radius:10px;padding:12px;background:#0c2b46;max-width:96%;overflow-wrap:anywhere}
+.x1-native-log article.x1-native-user{align-self:flex-end;background:#134b59;border-color:#276b80}
+.x1-native-log article small{color:#a0c6dc;font-size:10px}.x1-native-log article p{margin:6px 0 0;white-space:pre-wrap;font-size:12px;line-height:1.55}
+.x1-native-compose{display:flex;flex-direction:column;gap:7px;border-top:1px solid #1c3c58;padding:12px 14px}
+.x1-native-compose textarea{min-height:78px;max-height:180px;width:100%;font:inherit;font-size:12px}
+.x1-native-compose small{display:flex;gap:5px;align-items:center;color:#a9cadb;font-size:10px}
+.x1-native-compose button{align-self:flex-end}
+.x1-native-notice{margin:0;padding:8px 15px;background:#12324a;font-size:11px;line-height:1.4;color:#d0ebff;overflow-wrap:anywhere}
+.x1-native-receipt{margin:0 14px;padding:8px;color:#91f5c8;font-size:10px}
+.x1-native-footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;border-top:1px solid #1b3850;padding:10px 14px}
+.x1-native-footer a{font-size:10px;font-weight:800;color:#9fe5ff;text-decoration:none}
+.x1-live-command{overflow:hidden;display:flex;min-height:0}
+.x1-live-command>.x1-native-chat{width:100%}
+.x1-live-site{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:auto;padding:10px 14px;background:#071424}
+.x1-live-site-note{color:#c2ddec;font-size:11px;margin:0 0 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.x1-live-site-frame{height:calc(100% - 38px);min-height:470px;width:100%;max-width:1500px;border:1px solid #2c5471;background:#fff;border-radius:9px;box-shadow:0 12px 28px #0007}
+.x1-live-site-frame.tablet{max-width:768px}.x1-live-site-frame.mobile{max-width:390px}
+.x1-live-site-frame iframe{display:block;width:100%;height:100%;border:0;background:#fff}
+@media(max-width:850px){.x1-native-head{padding:12px}.x1-native-status{font-size:8px}.x1-live-site-frame{min-height:500px}.x1-native-gate{padding:15px}}
