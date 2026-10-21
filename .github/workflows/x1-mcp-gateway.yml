@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - "packages/x1-mcp-gateway/**"
+      - "apps/strategic-minds-v2/server/x1-control-plane-authorize.mjs"
+      - "apps/strategic-minds-v2/api/authorize.js"
+      - "apps/strategic-minds-v2/tests/x1-control-plane-authorize.test.mjs"
       - ".github/workflows/x1-mcp-gateway.yml"
   workflow_dispatch:
 permissions:
@@ -21,6 +24,8 @@ jobs:
           node-version: "22"
       - run: npm install --ignore-scripts --no-audit --no-fund
       - run: npm run check
+      - name: Test stage-only X1 /api/authorize against swarm contract
+        run: node --test ../../apps/strategic-minds-v2/tests/x1-control-plane-authorize.test.mjs
       - name: HTTP startup, unauthorized access and no accidental public routes
         run: |
           npm start > /tmp/x1-mcp-startup.log 2>&1 &
