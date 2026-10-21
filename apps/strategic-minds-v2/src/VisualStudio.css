@@ -160,7 +160,7 @@
  .x1-rail>a:not(.x1-smark),.x1-rail>button{width:41px;height:41px}.x1-smark{height:39px;width:39px}.x1-smark img{height:31px;width:30px}
  .x1-chat-head{padding:13px}.x1-chat{min-height:480px}.x1-editor-top{padding:12px}
  .x1-editor-project small{font-size:9px}.x1-editor-tabs{flex-wrap:wrap;padding:4px 9px}
- .x1-tabs-group{width:100%;justify-content:space-around}.x1-tabs-group button{min-height:40px;font-size:10px}.x1-view-controls{justify-content:center;width:100%;padding-bottom:5px}
+ .x1-tabs-group{width:100%;min-width:0;gap:0;justify-content:space-between}.x1-tabs-group button{min-height:40px;font-size:10px;padding:0 5px}.x1-view-controls{justify-content:center;width:100%;padding-bottom:5px}
  .x1-inspector{position:absolute;bottom:0;right:0;top:auto;width:min(100%,300px);height:min(450px,70%);box-shadow:-15px 0 38px #0008}
  .x1-canvas-measure,.x1-canvas-footer{font-size:8px}.x1-surface-header nav{display:none}
  .x1-surface-body{padding:30px 14px 65px;min-height:410px}.x1-surface-h1{font-size:34px}
