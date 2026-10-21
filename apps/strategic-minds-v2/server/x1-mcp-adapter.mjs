@@ -52,7 +52,7 @@ export async function runX1McpAdapter(req,res,{env=process.env,fetchImpl=fetch}=
    user_id:"eq."+ctx.actorId,status:"eq.ACTIVE",limit:"2"
   }));
   if(!Array.isArray(member)||member.length!==1||member[0].tenant_id!==ctx.tenantId||
-     member[0].user_id!==ctx.actorId||!ROLES.has(member[0].role))
+     member[0].user_id!==ctx.actorId||member[0].status!=="ACTIVE"||!ROLES.has(member[0].role))
     throw new PublicApiError(403,"ADAPTER_TENANT_MEMBERSHIP_DENIED");
   const tenants=await readJson(fetchImpl,binding,url("x1_tenants",{
    select:"tenant_id,status",tenant_id:"eq."+ctx.tenantId,status:"eq.ACTIVE",limit:"2"
