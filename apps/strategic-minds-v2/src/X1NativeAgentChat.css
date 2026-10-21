@@ -49,3 +49,10 @@
  .x1-native-status{white-space:normal;overflow-wrap:anywhere}
  .x1-live-site-note{min-width:0;overflow-wrap:anywhere}
 }
+
+/* Five native tabs replace the old four-tab mock editor; fit the fixed X1 rail viewport. */
+@media(max-width:600px){
+ .x1-studio .x1-tabs-group{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));width:100%;max-width:100%;min-width:0;gap:2px}
+ .x1-studio .x1-tabs-group button{min-width:0;white-space:normal;font-size:9px;padding:5px 1px;line-height:1.25}
+ .x1-studio .x1-tabs-group button svg{width:12px;height:12px}
+}
