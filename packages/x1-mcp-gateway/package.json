@@ -15,7 +15,7 @@
     "@hono/node-server": "1.19.6",
     "@modelcontextprotocol/server": "2.3.1",
     "jose": "6.1.0",
-    "zod": "4.1.11"
+    "zod": "4.3.6"
   },
   "devDependencies": {
     "@types/node": "22.18.10",
