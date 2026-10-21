@@ -41,6 +41,7 @@ export function workerIsLeaseReady(worker,expectedId) {
     worker.enabled===true && worker.lease_allowed===true && worker.lease_hold!==true &&
     worker.credential_binding_state==="BOUND" &&
     (worker.runtime_state==="ONLINE"||worker.runtime_state==="READY") &&
+    worker.heartbeat_age_seconds!==null && worker.heartbeat_age_seconds!==undefined &&
     Number.isFinite(Number(worker.heartbeat_age_seconds)) &&
     Number(worker.heartbeat_age_seconds)>=0 && Number(worker.heartbeat_age_seconds)<=300 &&
     Array.isArray(worker.allowed_action_classes)&&worker.allowed_action_classes.includes(ACTION);
@@ -101,7 +102,8 @@ export async function runControlPlaneAuthorize(req,res,{env=process.env,fetchImp
       method:"POST",body:{p_tenant_id:input.tenantId}
     });
     if(summary?.tenant_id!==input.tenantId||!Array.isArray(summary.workers)||
-       !summary.workers.some(w=>workerIsLeaseReady(w,workerId)))
+       !summary.workers.some(w=>workerIsLeaseReady(w,workerId)&&
+       Array.isArray(w.allowed_capabilities)&&input.requiredCapabilities.every(c=>w.allowed_capabilities.includes(c.id))))
       throw new PublicApiError(403,"WORKER_LEASE_PERMISSION_DENIED");
     const works=await databaseRequest(fetchImpl,binding,query("x1_work_queue",{
       select:"task_id,tenant_id,status,action_class,lease_id,required_capabilities",
