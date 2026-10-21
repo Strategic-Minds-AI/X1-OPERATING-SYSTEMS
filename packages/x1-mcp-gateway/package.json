@@ -1,0 +1,25 @@
+{
+  "name": "@x1/infinity-mcp-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Staging-only MCP v2 gateway for five X1 capability groups",
+  "engines": {"node": ">=22"},
+  "scripts": {
+    "start": "node --import tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.mjs",
+    "check": "npm run test && npm run typecheck"
+  },
+  "dependencies": {
+    "@hono/node-server": "1.19.6",
+    "@modelcontextprotocol/server": "2.3.1",
+    "jose": "6.1.0",
+    "zod": "4.1.11"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.10",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}
