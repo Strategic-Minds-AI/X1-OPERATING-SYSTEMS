@@ -37,3 +37,15 @@ The server listens on loopback by default. Set HOST=0.0.0.0 only inside an indep
 8. Seek target-specific owner approval before production, DNS, public publishing, spend or customer messages.
 
 **Current known staging backlog (observed live 2026-10-21):** 59 COMPLETED, 20 DEAD_LETTER, 17 BLOCKED. These are not caused or repaired by this package. No production changes authorized.
+
+## X1 native staging contracts added by mission 001
+
+A source-compatible worker authorization route now exists on the same feature branch at `apps/strategic-minds-v2/api/authorize.js`, backed by `server/x1-control-plane-authorize.mjs`. It validates an existing worker token through the `x1_match_worker_auth` RPC, checks worker eligibility, queue lease, tenant-scoped capabilities, issues an HMAC-signed READ_ONLY authorization and insists on a durable bootstrap receipt readback before returning success. It is not deployed or credential-bound.
+
+A native server-side MCP adapter now exists under `apps/strategic-minds-v2/api/v1/mcp/[group]/[operation].js`. The supported *real database-read implementations* are `supergpt.inventory` and `supergpt.job_status`; all other gateway tools remain unimplemented at the provider adapter layer and fail closed. The adapter requires `X1_MCP_ADAPTER_SERVICE_TOKEN` (server-side only), verified active tenant membership and preview/development staging binding. Set gateway `X1_ADAPTER_BASE_URL` to the verified preview app `/api` base path only after authenticating and testing. Do not use a production URL or reuse a worker's token as this service credential.
+
+**There are two distinct authorizer contracts**: the worker's bootstrap `POST /api/authorize` returns a signed `{authorization}`, while the current MCP gateway expects a tenant-capability decision `{allowed,actor_id,tenant_id,capability}` from `X1_AUTHZ_URL`. The worker route is not a drop-in substitute. Reconcile these through one canonical X1 policy authority with separately authenticated facades; do not point the MCP gateway at the incompatible route.
+
+GitHub Actions now runs 12 gateway policy/JWT/adapter tests, 8 worker-authorizer tests and 7 X1-native adapter tests (27 deterministic tests total), plus TypeScript and HTTP startup/negative checks. CI evidence: https://github.com/Strategic-Minds-AI/X1-OPERATING-SYSTEMS/actions/runs/39562621057
+
+Do not mark the five MCP namespaces as deployed/working merely because the source-level checks pass. The live lease-capable worker and hosted preview acceptance receipt remain blocked; the existing Railway swarm environment is *named production* even though its project is labeled preview.
