@@ -185,7 +185,7 @@ function EdenPage({variant}) {
     <div className="v2-eden-actions"><a href="#onboarding" className="v2-main-cta"
       onClick={()=>eventV2('eden_onboarding_start',variant)}>START WITH EDEN <span className="v2-cta-arrow"><ArrowRight size={18}/></span></a>
       <Call eden variant={variant}/></div>
-    <p className="v2-eden-note"><ShieldCheck size={17}/> Eden is an AI assistant. Live HeyGen video is not yet active in this preview.</p>
+    <p className="v2-eden-note"><ShieldCheck size={17}/> Eden is an AI onboarding guide. Live video interaction is not enabled on this site; use the discovery steps or call us.</p>
    </div>
    <figure className="v2-eden-figure"><img src={ASSETS+'eden-skye-original.avif'} alt="Eden Skye with dark brown hair, glasses and a futuristic black jacket" width="900" height="1100"/>
     <figcaption><span className="v2-green-dot"/> EDEN SKYE <small>AI ONBOARDING SPECIALIST</small></figcaption>

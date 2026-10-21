@@ -148,8 +148,8 @@ function PortalGateway(){
  return <div className="cp-site cp-gateway"><div className="cp-gateway-stars"/><div className="cp-gateway-shell">
   <header><Link to="/v2/a"><img src="/v2-assets/silver-emblem.png" alt="Strategic Minds AI emblem"/><span>STRATEGIC MINDS <b>AI</b></span></Link><Link to="/pricing">OUR ENGAGEMENTS <ArrowUpRight size={16}/></Link></header>
   <main><div className="cp-gateway-card"><p className="cp-kicker"><span className="cp-signal"/> YOUR INTELLIGENCE WORKSPACE</p><div className="cp-gateway-emblem"><ShieldCheck size={34}/></div><h1>One portal.<br/><em>Every possibility.</em></h1><p>Projects, your creative assets, approvals, leads, and more. Your entire AI journey in one beautifully simple place.</p>
-    <div className="cp-gateway-auth"><LockKeyhole size={19}/><div><strong>Secure sign-in is being connected.</strong><small>No live account access is available on this development preview.</small></div></div>
-    <Link to="/portal/demo" className="cp-green-button">EXPLORE INTERACTIVE DEMO <ArrowRight size={18}/></Link><p className="cp-fine">Demo data is synthetic. Real authentication is not active.</p>
+    <div className="cp-gateway-auth"><LockKeyhole size={19}/><div><strong>Client access is currently managed by our team.</strong><small>Online account sign-in is not yet enabled for this website. Request verified access instead of using sample data.</small></div></div>
+    <a href="mailto:jeremy@strategicmindsai.com?subject=Client%20Portal%20Access" className="cp-green-button">REQUEST CLIENT ACCESS <ArrowRight size={18}/></a><p className="cp-fine">Opens an email draft. No account is created until access is verified.</p>
     <div className="cp-gateway-bottom"><span>ALREADY WORKING WITH US?</span><a href="mailto:jeremy@strategicmindsai.com?subject=Client%20Portal%20Access">REQUEST ACCESS <ArrowUpRight size={15}/></a></div>
   </div><div className="cp-gateway-decor"><img src="/v2-assets/connected-earth.jpg" alt="Glowing connected Earth artwork"/><div><span>DISCOVER</span><span>CREATE</span><span>APPROVE</span><span>GROW</span></div></div></main>
  </div></div>;

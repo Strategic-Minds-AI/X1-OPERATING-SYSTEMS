@@ -30,7 +30,7 @@ function App(){
    <Route path="/v2/:variant" element={<V2Experience/>}/>
    <Route path="/pricing" element={<PricingExperience/>}/>
    <Route path="/portal" element={<ClientPortalExperience/>}/>
-   <Route path="/portal/demo" element={<ClientPortalExperience demo/>}/>
+   <Route path="/portal/demo" element={/^(www\.)?strategicmindsai\.com$/i.test(window.location.hostname)?<Navigate to="/portal" replace/>:<ClientPortalExperience demo/>}/>
    <Route path="/admin/studio" element={<VisualStudio/>}/>
    <Route path="/admin/visual-editor" element={<VisualStudio/>}/>
    <Route path="/admin/coding-kanban" element={<CodingKanban/>}/>

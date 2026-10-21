@@ -93,6 +93,6 @@ export default function PricingExperience(){
    </div></section>
    <section className="cp-final-cta"><div className="cp-container"><p className="cp-kicker">INTELLIGENCE IN MOTION</p><h2>Let's build what comes <em>next.</em></h2><p>Start with one conversation. We'll take it from there.</p><div className="cp-final-actions"><a href="#proposal-builder" className="cp-primary">BUILD MY PROPOSAL <ArrowRight size={16}/></a><a className="cp-outline" href="tel:+18665711174"><Sparkles size={16}/> CALL EDEN</a></div></div></section>
   </main>
-  <footer className="cp-footer"><span>STRATEGIC MINDS AI · INTELLIGENCE IN MOTION</span><div><Link to="/v2/a">Home</Link><Link to="/portal">Client Portal</Link><a href="mailto:jeremy@strategicmindsai.com">Contact</a></div><small>© 2026 Strategic Minds AI. Preview-only pricing directions.</small></footer>
+  <footer className="cp-footer"><span>STRATEGIC MINDS AI · INTELLIGENCE IN MOTION</span><div><Link to="/v2/a">Home</Link><Link to="/portal">Client Portal</Link><a href="mailto:jeremy@strategicmindsai.com">Contact</a></div><small>© 2026 Strategic Minds AI. Scoping is consultation-based; email drafts do not constitute an accepted proposal.</small></footer>
  </div>;
 }
