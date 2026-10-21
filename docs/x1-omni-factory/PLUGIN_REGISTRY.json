@@ -1,0 +1,33 @@
+{
+  "version": "0.1.0",
+  "mission_queue": "existing X1 only",
+  "plugins": [
+    {
+      "name": "X1 Super GPT Mission Router",
+      "id": "plugins_6ad840219a54819182af127fd1c0c847"
+    },
+    {
+      "name": "Visual X Website Factory",
+      "id": "plugins_6ad8402ffad08191ba3f133a76dc8bea"
+    },
+    {
+      "name": "Digital Dominance Provisioner",
+      "id": "plugins_6ad840353dac819199adc79bec91b94c"
+    },
+    {
+      "name": "AI Revenue & Communications",
+      "id": "plugins_6ad8403981188191830c61270e5d9c06"
+    },
+    {
+      "name": "Guardian Growth Intelligence",
+      "id": "plugins_6ad8403eaa9c81919047ebdaada6113e"
+    }
+  ],
+  "status": {
+    "plugins": "CREATED",
+    "source": "STAGED",
+    "worker": "NOT_VERIFIED",
+    "client_portal": "SPEC_ONLY",
+    "production": "UNCHANGED"
+  }
+}
