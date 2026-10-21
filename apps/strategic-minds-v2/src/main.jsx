@@ -12,6 +12,7 @@ const LaunchStudio=React.lazy(()=>import('./LaunchStudio.jsx'));
 const PromptLab=React.lazy(()=>import('./PromptLab.jsx'));
 const CodingKanban=React.lazy(()=>import('./CodingKanban.jsx'));
 const IntelligenceWorkbench=React.lazy(()=>import('./IntelligenceWorkbench.jsx'));
+const X1ConvergenceHub=React.lazy(()=>import('./X1ConvergenceHub.jsx'));
 
 function NavigateToHash() {
  const location=useLocation();
@@ -38,6 +39,7 @@ function App(){
    <Route path="/admin/intelligence" element={<IntelligenceWorkbench/>}/>
    <Route path="/admin/agent" element={<X1AgentConsole/>}/>
    <Route path="/admin/launch-studio" element={<LaunchStudio/>}/>
+   <Route path="/admin/convergence" element={<X1ConvergenceHub/>}/>
    <Route path="*" element={<Navigate to="/v2/b" replace/>}/>
  </Routes></React.Suspense></BrowserRouter>;
 }
