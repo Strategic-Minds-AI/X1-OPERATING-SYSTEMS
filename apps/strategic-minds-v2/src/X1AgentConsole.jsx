@@ -157,7 +157,7 @@ export default function X1AgentConsole(){
    <div className="x1-rail-divider"/>
    <Link to="/admin/studio" title="Visual Studio"><SquareTerminal size={21}/></Link>
    <Link className="active" to="/admin/agent" title="X1 Command Agent"><MessageCircle size={21}/></Link>
-   <Link to="/portal/demo" title="Client portal"><Workflow size={20}/></Link>
+   <Link to="/portal" title="Client portal access"><Workflow size={20}/></Link>
    <div className="x1-rail-spacer"/>
    <Link to="/v2/b" title="Return home"><ArrowLeft size={21}/></Link>
   </aside>
