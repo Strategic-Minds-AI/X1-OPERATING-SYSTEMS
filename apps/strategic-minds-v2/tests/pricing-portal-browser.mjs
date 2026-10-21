@@ -55,8 +55,9 @@ try{
  const href=await page.$eval('.cp-quote-fields a[href^="mailto:"]',n=>n.getAttribute('href'));
  check(href.includes('International')&&href.includes('Enterprise')&&href.includes('AI%20reception'),'voluntary quote email contains chosen scope');
  await goto(page,'/portal');
- check((await page.$eval('.cp-gateway-auth',n=>n.textContent)).includes('Secure sign-in is being connected'),'gateway does not fake login');
- await clickText(page,'a','EXPLORE INTERACTIVE DEMO');
+ check((await page.$eval('.cp-gateway-auth',n=>n.textContent)).includes('Client access is currently managed by our team'),'gateway does not fake login');
+ check((await page.$eval('.cp-gateway-card a.cp-green-button',n=>n.getAttribute('href'))).startsWith('mailto:jeremy@strategicmindsai.com'),'live gateway asks for verified client access');
+  await goto(page,'/portal/demo');
  await page.waitForSelector('.cp-portal-shell');
  check(page.url().includes('/portal/demo'),'demo gateway link navigates');
  await page.click('.cp-sidebar nav button:nth-child(3)');
