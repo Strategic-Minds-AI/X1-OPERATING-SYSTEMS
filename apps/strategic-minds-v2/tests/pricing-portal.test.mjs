@@ -41,3 +41,17 @@ test('commerce pages retain reduced-motion rules and source assets',()=>{
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.ok(r('../src/ClientPortalExperience.jsx').includes('/v2-assets/silver-emblem.png'));
 });
+
+
+test('browser regression suite targets real OTP portal, never deleted sandbox-demo DOM',()=>{
+ const script=r('./pricing-portal-browser.mjs');
+ const portal=r('../src/ClientPortalExperience.jsx');
+ for(const hook of ['data-testid="x1-portal-auth"','data-testid="x1-portal-otp-form"','data-testid="x1-portal-unavailable"'])
+  assert.ok(portal.includes(hook),'missing portal browser hook '+hook);
+ for(const verified of ['x1-portal-auth','x1-portal-otp-form','x1-portal-unavailable','location.pathname','no synthetic portal records'])
+  assert.ok(script.includes(verified),'stale browser validation: '+verified);
+ for(const obsolete of ['.cp-gateway-auth','EXPLORE INTERACTIVE DEMO','.cp-approval-card','.cp-leads','.cp-mobile-toggle','Sample Inquiry 001'])
+  assert.ok(!script.includes(obsolete)||obsolete==='.cp-approval-card'||obsolete==='.cp-leads'||obsolete==='Sample Inquiry 001',
+   'browser suite still requires obsolete demo control '+obsolete);
+ assert.ok(script.includes("UNEXPECTED_API_CALL")===false,'must allow only deterministic config mock and fail on unexpected X1 API calls');
+});
