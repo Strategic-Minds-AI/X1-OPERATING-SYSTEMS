@@ -1,0 +1,29 @@
+name: X1 MCP Gateway — staging verification
+on:
+  pull_request:
+    paths:
+      - "packages/x1-mcp-gateway/**"
+      - ".github/workflows/x1-mcp-gateway.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-gateway:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: packages/x1-mcp-gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npm run check
+      - name: Verify no forbidden publishing commands or bundled credentials
+        run: |
+          if grep -R -E '(service_role.{0,20}eyJ|sk_(live|test)_[A-Za-z0-9]{10}|AKIA[0-9A-Z]{16})' src; then
+            echo "Suspected embedded credential" >&2
+            exit 1
+          fi
