@@ -25,8 +25,16 @@ test('All major views use the original metallic S',()=>{
  for(const p of paths)assert.ok(file('../src/'+p).includes('/v2-assets/silver-emblem.png'),p);
  assert.ok(file('../src/V2Experience.jsx').includes('className="v2-header-s"'));
 });
-test('Studio agent statuses disclose unbound runtime',()=>{
- const s=file('../src/VisualStudio.jsx');
- for(const k of ['UNBOUND','No model was called','not a live sandbox'])assert.ok(s.includes(k),k);
- assert.doesNotMatch(s,/\bfetch\(/);
+test('Visual X uses authenticated X1 API instead of browser-local fake chat',()=>{
+ const s=file('../src/VisualStudio.jsx'),agent=file('../src/X1NativeAgentChat.jsx');
+ assert.ok(s.includes('<X1NativeAgentChat suggestion={agentSuggestion}/>'),'native chat mounted');
+ assert.ok(s.includes('src="/v2/b"'),'same-origin live site shown in preview');
+ assert.ok(s.includes("mode:'review_only'"),'visual edits remain reviewable');
+ assert.ok(s.includes('source_repo:\'Strategic-Minds-AI/X1-OPERATING-SYSTEMS\''),'patch targets canonical repo');
+ assert.ok(!s.includes('No model was called'),'old mock chat removed');
+ assert.ok(agent.includes("fetch('/api/x1/agent-config'"),'native runtime probe');
+ assert.ok(agent.includes("fetch('/api/x1/agent-chat'"),'native authenticated API');
+ assert.ok(agent.includes('STAGING_CONFIGURED_NOT_AUTHENTICATED'),'fail closed when runtime unavailable');
+ assert.ok(agent.includes('create_user:false'),'no automatic signup');
+ assert.ok(agent.includes('Request unconfirmed:'),'unconfirmed sends never claim success');
 });
