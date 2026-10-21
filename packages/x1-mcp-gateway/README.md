@@ -15,7 +15,7 @@ One Model Context Protocol TypeScript SDK v2 Streamable HTTP endpoint at `/mcp`,
 This package **does not create another scheduler, database, queue, token or deploy service**. Each call requires an independently verified JWT and a tenant/capability authorization decision from the existing X1 authority. Each call reaches only a configured server-side adapter with dry-run set true, environment staging and publication disabled. If an adapter is missing it fails closed with BLOCKED; it never invents a build receipt.
 
 ## Configure (do not paste secrets or publish tokens)
-Environment variables: `X1_JWKS_URL`, `X1_JWT_ISSUER`, `X1_JWT_AUDIENCE`, `X1_AUTHZ_URL`, `X1_ADAPTER_BASE_URL`, `X1_ADAPTER_SERVICE_TOKEN`, `X1_ALLOWED_ORIGINS`, `HOST`, `PORT`. The adapter must validate tenant, actor, source SHA, idempotency and permissions itself. There is no direct Supabase service-role token in an MCP client.
+Environment variables: `X1_JWKS_URL`, `X1_JWT_ISSUER`, `X1_JWT_AUDIENCE`, `X1_AUTHZ_URL`, `X1_AUTHZ_SERVICE_TOKEN`, `X1_ADAPTER_BASE_URL`, `X1_ADAPTER_SERVICE_TOKEN`, `X1_ALLOWED_ORIGINS`, `HOST`, `PORT`. The adapter must validate tenant, actor, source SHA, idempotency and permissions itself. There is no direct Supabase service-role token in an MCP client.
 
 ```sh
 cd packages/x1-mcp-gateway
@@ -24,7 +24,7 @@ npm run check
 HOST=127.0.0.1 npm start
 ```
 
-The server listens on loopback by default. Set HOST=0.0.0.0 only inside an independently authenticated and reviewed staging network, behind TLS and resource-bound OAuth/JWT validation. The authz endpoint must respond `{allowed:true, actor_id, tenant_id, capability}` matching the request exactly. The internal adapter contracts must be implemented against the existing X1 control plane, Launch Engine, SEO Generator, Auto Social and Digital Dominance; this commit does NOT assert they exist.
+The server listens on loopback by default. Set HOST=0.0.0.0 only inside an independently authenticated and reviewed staging network, behind TLS and resource-bound OAuth/JWT validation. JWTs must carry the signed `x1:mcp` scope. The internal X1 authorization endpoint is called with a separate server-held service token, not a forwarded user bearer. Its policy must independently inspect tenant membership and capability; a client-provided actor ID is never itself authorization. The authz endpoint must respond `{allowed:true, actor_id, tenant_id, capability}` matching the request exactly. The internal adapter contracts must be implemented against the existing X1 control plane, Launch Engine, SEO Generator, Auto Social and Digital Dominance; this commit does NOT assert they exist.
 
 ## Release gates
 1. Review current branch SHA and merge conflict with PR #32.
