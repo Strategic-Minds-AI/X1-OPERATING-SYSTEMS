@@ -23,7 +23,7 @@ export function buildServer(principal: X1Principal) {
       server.registerTool("x1_" + group + "_" + operation, {
         description: descriptions[group] + " | operation " + operation +
           " | staging-only; verified tenant authorization required; no production or publication",
-        inputSchema: schema.shape
+        inputSchema: schema
       }, async (input) => {
         const capability = group + "." + operation;
         try {
