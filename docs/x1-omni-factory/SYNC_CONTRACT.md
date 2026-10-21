@@ -1,0 +1,4 @@
+# X1 Bidirectional Sync Contract
+Canon by data type: Supabase for clients/consents/CRM/jobs, GitHub for code and templates, Drive for folders/assets, Stripe for paid/subscription state, Vercel for deployments, Railway for workers, native providers for analytics, Guardian for independent release receipts. Read existing UNIFIED_SYNC_FABRIC_CURRENT.json first.
+Outbox/inbox + event_id + tenant_id + source_revision + checksum + idempotency_key + lease ID + TTL + retry count + audit + rollback + read-back. Incoming events validate signature; avoid blind last-write-wins; quarantine conflicts. Do not mirror client PII into public repo or logs. No perpetual background process is established by this document.
+Schedule ONLY with existing X1 worker/scheduler if heartbeat/lock/lease are verified; otherwise create an execution packet and mark BLOCKED. No extra overlapping cron.
