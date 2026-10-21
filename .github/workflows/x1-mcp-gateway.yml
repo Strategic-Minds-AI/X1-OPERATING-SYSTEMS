@@ -29,6 +29,8 @@ jobs:
       - run: npm run check
       - name: Test stage-only X1 /api/authorize against swarm contract
         run: node --test ../../apps/strategic-minds-v2/tests/x1-control-plane-authorize.test.mjs
+      - name: Native X1 provider adapter tenant-security tests
+        run: node --test ../../apps/strategic-minds-v2/tests/x1-mcp-adapter.test.mjs
       - name: HTTP startup, unauthorized access and no accidental public routes
         run: |
           npm start > /tmp/x1-mcp-startup.log 2>&1 &
