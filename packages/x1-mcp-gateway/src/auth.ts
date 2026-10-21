@@ -14,7 +14,7 @@ export async function verifyBearer(request: Request): Promise<X1Principal> {
   if (!jwks) jwks = createRemoteJWKSet(new URL(requireSecureEndpoint(jwksUrl)));
   const verified = await jwtVerify(token, jwks, { issuer, audience, algorithms: ["RS256", "ES256"], clockTolerance: 5 });
   if (!verified.payload.sub) throw new Error("SUBJECT_REQUIRED");
-  const scope = typeof verified.payload.scope === "string" ? verified.payload.scope.split(/\\s+/) :
+  const scope = typeof verified.payload.scope === "string" ? verified.payload.scope.split(/\s+/) :
     Array.isArray(verified.payload.scp) ? verified.payload.scp : [];
   if (!scope.includes("x1:mcp")) throw new Error("SCOPE_REQUIRED");
   return { token, actorId: verified.payload.sub };
