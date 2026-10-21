@@ -35,3 +35,17 @@
 .x1-live-site-frame.tablet{max-width:768px}.x1-live-site-frame.mobile{max-width:390px}
 .x1-live-site-frame iframe{display:block;width:100%;height:100%;border:0;background:#fff}
 @media(max-width:850px){.x1-native-head{padding:12px}.x1-native-status{font-size:8px}.x1-live-site-frame{min-height:500px}.x1-native-gate{padding:15px}}
+
+/* The brandlock mobile viewport has only 342px after the fixed left rail.
+   Wrapped header labels/buttons prevent horizontal document overflow. */
+@media(max-width:600px){
+ .x1-studio .x1-top-left,.x1-studio .x1-top-actions{min-width:0;max-width:100%;flex-wrap:wrap}
+ .x1-studio .x1-studio-label{white-space:normal;overflow-wrap:anywhere;line-height:1.4;max-width:100%}
+ .x1-studio .x1-top-actions .x1-save{min-width:0;max-width:100%;white-space:normal;text-align:center;font-size:9px;padding:8px 9px}
+ .x1-native-chat,.x1-live-command,.x1-live-site{min-width:0;max-width:100%}
+ .x1-native-head{flex-wrap:wrap;min-width:0}
+ .x1-native-head>div{min-width:0;flex:1 1 170px}
+ .x1-native-head>div>span{min-width:0;overflow-wrap:anywhere}
+ .x1-native-status{white-space:normal;overflow-wrap:anywhere}
+ .x1-live-site-note{min-width:0;overflow-wrap:anywhere}
+}
