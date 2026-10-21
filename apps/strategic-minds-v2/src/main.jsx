@@ -9,6 +9,7 @@ const ClientPortalExperience=React.lazy(()=>import('./ClientPortalExperience.jsx
 const VisualStudio=React.lazy(()=>import('./VisualStudio.jsx'));
 const X1AgentConsole=React.lazy(()=>import('./X1AgentConsole.jsx'));
 const LaunchStudio=React.lazy(()=>import('./LaunchStudio.jsx'));
+const TemplateDesigner=React.lazy(()=>import('./TemplateDesigner.jsx'));
 const PromptLab=React.lazy(()=>import('./PromptLab.jsx'));
 const CodingKanban=React.lazy(()=>import('./CodingKanban.jsx'));
 
@@ -36,6 +37,7 @@ function App(){
    <Route path="/admin/prompt-lab" element={<PromptLab/>}/>
    <Route path="/admin/agent" element={<X1AgentConsole/>}/>
    <Route path="/admin/launch-studio" element={<LaunchStudio/>}/>
+   <Route path="/admin/template-designer" element={<TemplateDesigner/>}/>
    <Route path="*" element={<Navigate to="/v2/b" replace/>}/>
  </Routes></React.Suspense></BrowserRouter>;
 }

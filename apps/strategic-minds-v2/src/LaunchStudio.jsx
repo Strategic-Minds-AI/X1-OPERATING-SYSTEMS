@@ -272,7 +272,7 @@ export default function LaunchStudio() {
           <div className="x1-ls-brand-icon"><Sparkles size={19}/></div>
           <div><div className="x1-ls-kicker">STRATEGIC MINDS AI <span>/ ADMIN WORKSPACE</span></div><h1>Launch Studio</h1><p>Industry-aware website factory · design, content, and launch blueprints</p></div>
         </div>
-        <div className="x1-ls-top-actions"><span className="x1-ls-status"><i/> {status}</span><button onClick={exportBlueprint}><Download size={15}/> Export blueprint</button><button className="x1-ls-primary-btn" onClick={exportHtml}><Rocket size={15}/> Export HTML</button></div>
+        <div className="x1-ls-top-actions"><span className="x1-ls-status"><i/> {status}</span><Link to="/admin/template-designer" className="x1-ls-primary-btn"><LayoutTemplate size={15}/> Universal Template Designer</Link><button onClick={exportBlueprint}><Download size={15}/> Export blueprint</button><button className="x1-ls-primary-btn" onClick={exportHtml}><Rocket size={15}/> Export HTML</button></div>
       </header>
       <nav className="x1-ls-tabs" aria-label="Launch Studio tools">
         {tabs.map(([id,label,Icon])=><button key={id} className={activeTab===id?'active':''} onClick={()=>setActiveTab(id)}><Icon size={16}/><span>{label}</span></button>)}
