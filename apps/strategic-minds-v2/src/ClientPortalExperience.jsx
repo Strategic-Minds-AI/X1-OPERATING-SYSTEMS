@@ -54,10 +54,10 @@ export default function ClientPortalExperience(){
    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:15}}><ShieldCheck color="#66ff9c" size={28}/><span style={{letterSpacing:".16em",color:"#9bbdd0",fontSize:12}}>STRATEGIC MINDS AI · AUTHENTICATED ACCESS</span></div>
    <h1 style={{fontSize:"clamp(38px,5vw,66px)",margin:"8px 0 15px",letterSpacing:"-.045em"}}>Your X1 workspace.</h1>
    <p style={{color:"#9bbdd0",maxWidth:690,lineHeight:1.7}}>Connect to your authorized account to view real work items and operating status. All information comes from your tenant in X1, not placeholder records.</p>
-   {!token?<section className="cp-gateway-card" style={{margin:"32px 0",maxWidth:550,padding:28,border:"1px solid #23445b",background:"#061726",borderRadius:20}}>
+   {!token?<section data-testid="x1-portal-auth" className="cp-gateway-card" style={{margin:"32px 0",maxWidth:550,padding:28,border:"1px solid #23445b",background:"#061726",borderRadius:20}}>
      <div style={{display:"flex",gap:12,alignItems:"center"}}><LockKeyhole color="#66ff9c"/><h2 style={{margin:0}}>Secure account sign-in</h2></div>
-     {!configured?<div role="status" style={{marginTop:18,color:"#9bbdd0"}}> {config===null?"Connecting to X1…":"X1 authentication is not available on this deployment."} <button type="button" style={{display:"block",marginTop:12}} onClick={()=>window.location.reload()}>Retry connection</button></div>
-     :<form onSubmit={step==="code"?verifyCode:requestCode} style={{display:"grid",gap:13,marginTop:23}}>
+     {!configured?<div data-testid="x1-portal-unavailable" role="status" style={{marginTop:18,color:"#9bbdd0"}}> {config===null?"Connecting to X1…":"X1 authentication is not available on this deployment."} <button type="button" style={{display:"block",marginTop:12}} onClick={()=>window.location.reload()}>Retry connection</button></div>
+     :<form data-testid="x1-portal-otp-form" onSubmit={step==="code"?verifyCode:requestCode} style={{display:"grid",gap:13,marginTop:23}}>
        <label htmlFor="x1-portal-email">Account email</label><input id="x1-portal-email" type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} disabled={step==="code"} style={{padding:13,borderRadius:9,color:"#061726"}}/>
        {step==="code"&&<><label htmlFor="x1-portal-code">One-time email code</label><input id="x1-portal-code" autoComplete="one-time-code" required inputMode="numeric" value={otp} onChange={e=>setOtp(e.target.value)} style={{padding:13,borderRadius:9,color:"#061726"}}/></>}
        <button type="submit" disabled={busy} className="cp-green-button">{busy?"Verifying…":step==="code"?"VERIFY AND OPEN WORKSPACE":"EMAIL SIGN-IN CODE"} <ArrowRight size={16}/></button>
