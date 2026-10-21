@@ -28,7 +28,14 @@ try{
  browser=await puppeteer.launch({executablePath:browserPath,headless:true,args:['--no-sandbox','--disable-setuid-sandbox','--disable-gpu']});
  const page=await browser.newPage();
  page.on('pageerror',e=>errors.push(e.message));
- page.on('request',request=>{if(/\/api\/x1\//.test(request.url()))errors.push('UNEXPECTED_REAL_AGENT_CALL '+request.url())});
+ page.on('request',request=>{
+  if(!/\/api\/x1\//.test(request.url()))return;
+  // The real portal now loads public connection metadata on signed-out views.
+  // GET agent-config is expected; any mutating or tenant-data request is not.
+  const url=new URL(request.url());
+  if(request.method()==='GET'&&url.pathname==='/api/x1/agent-config')return;
+  errors.push('UNEXPECTED_REAL_AGENT_CALL '+request.method()+' '+request.url());
+ });
  for(const size of [{name:'desktop',width:1440,height:900},{name:'mobile',width:390,height:844}]){
   await page.setViewport({width:size.width,height:size.height,deviceScaleFactor:1});
   for(const path of targets){
