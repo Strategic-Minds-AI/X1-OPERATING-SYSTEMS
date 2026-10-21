@@ -1,0 +1,58 @@
+name: X1 MCP Gateway — staging verification
+on:
+  pull_request:
+    paths:
+      - "packages/x1-mcp-gateway/**"
+      - "apps/strategic-minds-v2/server/x1-control-plane-authorize.mjs"
+      - "apps/strategic-minds-v2/api/authorize.js"
+      - "apps/strategic-minds-v2/tests/x1-control-plane-authorize.test.mjs"
+      - "apps/strategic-minds-v2/server/x1-mcp-adapter.mjs"
+      - "apps/strategic-minds-v2/api/v1/mcp/**"
+      - "apps/strategic-minds-v2/tests/x1-mcp-adapter.test.mjs"
+      - ".github/workflows/x1-mcp-gateway.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-gateway:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: packages/x1-mcp-gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npm run check
+      - name: Test stage-only X1 /api/authorize against swarm contract
+        run: node --test ../../apps/strategic-minds-v2/tests/x1-control-plane-authorize.test.mjs
+      - name: Native X1 provider adapter tenant-security tests
+        run: node --test ../../apps/strategic-minds-v2/tests/x1-mcp-adapter.test.mjs
+      - name: HTTP startup, unauthorized access and no accidental public routes
+        run: |
+          npm start > /tmp/x1-mcp-startup.log 2>&1 &
+          pid=$!
+          trap 'kill $pid || true' EXIT
+          ready=0
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:4318/healthz > /tmp/x1-mcp-health.json; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then cat /tmp/x1-mcp-startup.log; exit 1; fi
+          grep -q '"adapter_verified":false' /tmp/x1-mcp-health.json
+          status=$(curl -s -o /dev/null -w "%{http_code}" -X POST "http://127.0.0.1:4318/mcp" -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}')
+          test "$status" = "401"
+          bad=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:4318/unlisted")
+          test "$bad" = "404"
+      - name: Verify no forbidden publishing commands or bundled credentials
+        run: |
+          if grep -R -E '(service_role.{0,20}eyJ|sk_(live|test)_[A-Za-z0-9]{10}|AKIA[0-9A-Z]{16})' src; then
+            echo "Suspected embedded credential" >&2
+            exit 1
+          fi
