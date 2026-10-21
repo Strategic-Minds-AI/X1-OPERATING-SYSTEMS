@@ -1,0 +1,38 @@
+name: X1 OMNI Offline Canary
+on:
+  push:
+    branches:
+      - feature/x1-omni-factory-20261021
+    paths:
+      - "docs/x1-omni-factory/**"
+      - ".github/workflows/x1-omni-smoke.yml"
+  pull_request:
+    paths:
+      - "docs/x1-omni-factory/**"
+      - ".github/workflows/x1-omni-smoke.yml"
+permissions:
+  contents: read
+jobs:
+  x1-omni-offline-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline deterministic mission compiler tests
+        run: python docs/x1-omni-factory/src/test_compiler.py
+      - name: Generate safe synthetic canary mission
+        run: python docs/x1-omni-factory/src/mission_compiler.py "Build a fictional epoxy coating site" > /tmp/x1-omni-synthetic.json
+      - name: Check outputs and zero live submissions
+        run: |
+          python - <<'PY'
+          import json
+          p=json.load(open("/tmp/x1-omni-synthetic.json"))
+          assert len(p["tasks"])==13
+          assert p["not_submitted"]
+          assert all(x["status"]=="PLANNED" for x in p["tasks"])
+          assert sum(t["approval_required"] for t in p["tasks"])==2
+          print("Safe synthetic canary contract PASS")
+          PY
