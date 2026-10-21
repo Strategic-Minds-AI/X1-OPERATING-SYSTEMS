@@ -6,6 +6,9 @@ on:
       - "apps/strategic-minds-v2/server/x1-control-plane-authorize.mjs"
       - "apps/strategic-minds-v2/api/authorize.js"
       - "apps/strategic-minds-v2/tests/x1-control-plane-authorize.test.mjs"
+      - "apps/strategic-minds-v2/server/x1-mcp-adapter.mjs"
+      - "apps/strategic-minds-v2/api/v1/mcp/**"
+      - "apps/strategic-minds-v2/tests/x1-mcp-adapter.test.mjs"
       - ".github/workflows/x1-mcp-gateway.yml"
   workflow_dispatch:
 permissions:
