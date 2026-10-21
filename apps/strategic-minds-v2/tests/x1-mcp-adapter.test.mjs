@@ -68,7 +68,7 @@ test("denies inactive tenant/membership before reading capability or queue rows"
  const calls=[],res=sink();
  await runX1McpAdapter(request(),res,{env:ENV,fetchImpl:readbacks(calls,"INACTIVE")});
  // The membership PostgREST filter should ensure INACTIVE is not returned; injected result is rejected here.
- assert.equal(res.statusCode,200===res.statusCode?200:403);
+ assert.equal(res.statusCode,403);assert.equal(calls.length,1);
 });
 test("denies external environment before reads",async()=>{
  const calls=[],res=sink();
