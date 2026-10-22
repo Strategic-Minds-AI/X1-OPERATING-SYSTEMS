@@ -8,9 +8,12 @@
  * surface and the local machine.
  */
 
+import { exec } from 'child_process';
+import os from 'os';
+
 const BASE_URL = process.env.X1_BASE_URL || '';
 const WORKER_TOKEN = process.env.X1_WORKER_TOKEN || '';
-const WORKER_NAME = process.env.X1_WORKER_NAME || require('os').hostname();
+const WORKER_NAME = process.env.X1_WORKER_NAME || os.hostname();
 const POLL_INTERVAL = 5000;
 const MAX_JOB_TIME = 120000;
 
@@ -19,9 +22,6 @@ if (!BASE_URL || !WORKER_TOKEN) {
   console.error('Get the worker token from the X1 Secrets page.');
   process.exit(1);
 }
-
-const { exec } = require('child_process');
-const os = require('os');
 
 async function api(path, opts = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {
