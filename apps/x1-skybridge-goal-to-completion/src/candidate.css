@@ -1,0 +1,5 @@
+
+.candidate-visual{border:1px solid #384253;border-radius:13px;overflow:hidden;margin-top:20px;background:radial-gradient(circle at 87% 14%,#334352,#0b0e13 60%);box-shadow:0 15px 60px #05070a55}
+.candidate-nav{display:flex;justify-content:space-between;align-items:center;padding:17px 22px;border-bottom:1px solid #34404f;font-size:12px}
+.candidate-nav strong{font-size:15px;letter-spacing:.04em}.candidate-nav strong span{color:#f3c15b}.candidate-nav>span{border:1px solid #6f7780;border-radius:7px;padding:7px}
+.candidate-body{padding:50px clamp(18px,6vw,72px) 60px}.candidate-body h2{font-size:clamp(29px,5vw,61px);line-height:1.02;letter-spacing:-.05em;max-width:610px;margin:15px 0}.candidate-body>p:not(.kicker){max-width:530px;color:#b9c5d3;line-height:1.5}.candidate-cta{display:inline-block;margin-top:13px;border-radius:7px;background:#f3c15b;color:#14100b;font-size:12px;font-weight:850;padding:13px 17px}.candidate-labels{display:flex;gap:13px;flex-wrap:wrap;margin-top:32px;color:#aab6c4;font-size:10px}.candidate-labels span{border-left:2px solid #e9bc59;padding-left:9px}
