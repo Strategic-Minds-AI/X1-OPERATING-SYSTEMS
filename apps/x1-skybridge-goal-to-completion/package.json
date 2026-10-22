@@ -1,8 +1,8 @@
 {
-  "name": "X1_SKYBRIDGE_GOAL_RECEIPT_20261022",
-  "version": "0.0.1",
+  "name": "x1-skybridge-goal-to-completion",
+  "version": "0.3.0",
   "private": true,
-  "description": "Blank Skybridge MCP server template",
+  "description": "X1 Skybridge cloud-local goal-to-completion MCP candidate (not production approved)",
   "type": "module",
   "scripts": {
     "dev": "skybridge dev",
@@ -32,4 +32,3 @@
   "engines": {
     "node": ">=24.18.0"
   }
-}

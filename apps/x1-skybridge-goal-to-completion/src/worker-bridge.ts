@@ -56,7 +56,10 @@ export async function dispatchReadOnlyProbe(requestId: string) {
   try {
     const scriptBytes = await readFile(jobScript);
     const scriptSHA = sha(scriptBytes);
-    const scriptWslPath = "/mnt/c/_Strategic_Minds_AI_OS/07_Infrastructure/backend-fabric/jobs/smoke-standard.py";
+    const scriptWslPath = path.resolve(jobScript);
+    if (scriptWslPath !== "/mnt/c/_Strategic_Minds_AI_OS/07_Infrastructure/backend-fabric/jobs/smoke-standard.py") {
+      throw new Error("LOCAL_WORKER_PATH_MISMATCH: canonical WSL2 backend path required");
+    }
     const packet = {
       schema_version: "1.0", job_id: jobId, queue: "standard",
       action_class: "READ", script_path: scriptWslPath,

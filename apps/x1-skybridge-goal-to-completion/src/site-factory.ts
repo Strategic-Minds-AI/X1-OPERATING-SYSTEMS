@@ -55,6 +55,7 @@ ${kindSection}</main><footer>${t} · Concept preview · No customer data collect
 ${appScript}</body></html>`;
 }
 export async function createCandidate(goal:string,title:string,kind:SiteKind) {
+ if (process.env.NODE_ENV === "production") throw new Error("PREVIEW_WRITE_DENIED: production requires authenticated tenant gateway");
  const g=clean(goal), t=clean(title);
  if(g.length<3||t.length<3) throw new Error("Goal/title too short");
  const id=createHash("sha256").update(JSON.stringify({g,t,kind,version:2})).digest("hex").slice(0,16);

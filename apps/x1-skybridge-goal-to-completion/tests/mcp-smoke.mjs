@@ -7,7 +7,7 @@ try {
  await client.connect(transport);
  const t=await client.listTools();
  const names=t.tools.map(x=>x.name).sort();
- for(const name of ["create_goal_plan","review_goal_evidence","inspect_x1_systems","inspect_x1_jobs","build_site_preview","validate_site_preview","plan_cloud_action"]) assert(names.includes(name),name);
+ for(const name of ["create_goal_plan","review_goal_evidence","inspect_x1_systems","inspect_x1_jobs","inspect_readonly_worker_probe","build_site_preview","validate_site_preview","plan_cloud_action"]) assert(names.includes(name),name);
  const p=await client.callTool({name:"create_goal_plan",arguments:{goal:"Ship one verified preview"}});
  assert.equal(p.structuredContent?.steps?.length,7);
  const review=await client.callTool({name:"review_goal_evidence",arguments:{goal:"Ship one verified preview",steps:[{title:"Run tests",acceptance:"Tests passed",status:"review",evidence:"receipt-ref"}]}});
@@ -21,6 +21,8 @@ try {
  const tests=await client.callTool({name:"validate_site_preview",arguments:{candidateId:build.structuredContent.candidateId}});
  assert.equal(tests.structuredContent.failed,0);
  assert.equal(tests.structuredContent.releaseAuthorized,false);
+ const job=await client.callTool({name:"inspect_readonly_worker_probe",arguments:{requestId:"X1-SKYBRIDGE-READ-CANARY-20261022-v3"}});
+ assert.equal(job.structuredContent.receiptVerified,true);
  const cloud=await client.callTool({name:"plan_cloud_action",arguments:{provider:"vercel",intent:"Create a test preview only",environment:"preview"}});
  assert.equal(cloud.structuredContent.dispatch,"NOT_PERFORMED");
  console.log(JSON.stringify({ok:true,tools:names,localServices:systems.structuredContent.services.length,workerMirrorRecords:jobs.structuredContent.count,candidate:build.structuredContent.candidateId,checks:tests.structuredContent.passed,cloudDispatch:cloud.structuredContent.dispatch}));
