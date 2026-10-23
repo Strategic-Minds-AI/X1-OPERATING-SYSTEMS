@@ -1,5 +1,5 @@
 /*
- * X1 Fleet Bridge Worker v2
+ * X1 Fleet Bridge Worker v3
  * Run: node apps/strategic-minds-v2/bridge/worker.js
  *
  * Connects to X1 directly via the Base44 API. No custom functions needed.
@@ -10,8 +10,13 @@
 import { exec } from 'child_process';
 import os from 'os';
 
-// The app runtime URL (not the editor URL)
-const BASE_URL = process.env.X1_BASE_URL || 'https://1-operating-system.base44.app';
+// The app runtime URL — override any editor URL the user may have set
+let rawUrl = process.env.X1_BASE_URL || 'https://1-operating-system.base44.app';
+// If they pasted the editor URL, extract the app slug and fix it
+if (rawUrl.includes('app.base44.com')) {
+  rawUrl = 'https://1-operating-system.base44.app';
+}
+const BASE_URL = rawUrl.replace(/\/+$/, '');
 const WORKER_TOKEN = process.env.X1_WORKER_TOKEN || '';
 const WORKER_NAME = process.env.X1_WORKER_NAME || os.hostname();
 const POLL_INTERVAL = 5000;
@@ -59,10 +64,6 @@ async function registerWorker() {
     modelList = JSON.parse(models).map(m => m.name).filter(Boolean);
   } catch {}
 
-  // Try to find existing worker by name
-  const existing = await apiCall(`/X1Worker?filter=${encodeURIComponent(JSON.stringify({ name: WORKER_NAME }))}&limit=1`);
-  const items = existing && existing.items ? existing.items : (Array.isArray(existing) ? existing : []);
-
   const body = {
     name: WORKER_NAME,
     host: os.hostname(),
@@ -81,15 +82,18 @@ async function registerWorker() {
     image_count: 0,
   };
 
+  // Try to find existing worker by name
+  const filterParam = encodeURIComponent(JSON.stringify({ name: WORKER_NAME }));
+  const existing = await apiCall(`/X1Worker?filter=${filterParam}&limit=1`);
+  const items = existing && existing.items ? existing.items : (Array.isArray(existing) ? existing : []);
+
   if (items.length > 0 && items[0].id) {
-    // Update existing
     workerId = items[0].id;
     await apiCall(`/X1Worker/${workerId}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
     });
   } else {
-    // Create new
     const created = await apiCall('/X1Worker', {
       method: 'POST',
       body: JSON.stringify(body),
@@ -98,7 +102,17 @@ async function registerWorker() {
       workerId = created.id;
     } else if (created && created.error) {
       console.error('Failed to register worker:', created.error);
-      return false;
+      // Try with PUT as fallback
+      const putRes = await apiCall('/X1Worker', {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      });
+      if (putRes && putRes.id) {
+        workerId = putRes.id;
+      } else {
+        console.error('PUT also failed:', putRes && putRes.error ? putRes.error : 'unknown');
+        return false;
+      }
     }
   }
 
@@ -125,8 +139,8 @@ async function heartbeat() {
 }
 
 async function claimAndRunJob() {
-  // Find queued jobs
-  const queued = await apiCall(`/X1BridgeJob?filter=${encodeURIComponent(JSON.stringify({ status: 'queued' }))}&limit=1&sort=created_date`);
+  const filterParam = encodeURIComponent(JSON.stringify({ status: 'queued' }));
+  const queued = await apiCall(`/X1BridgeJob?filter=${filterParam}&limit=1&sort=created_date`);
   const items = queued && queued.items ? queued.items : (Array.isArray(queued) ? queued : []);
   if (!items.length) return;
 
@@ -134,7 +148,7 @@ async function claimAndRunJob() {
   console.log(`[${new Date().toISOString()}] Claiming job ${job.id}: ${job.title || 'untitled'} (${job.kind})`);
 
   // Claim it
-  const claimed = await apiCall(`/X1BridgeJob/${job.id}`, {
+  await apiCall(`/X1BridgeJob/${job.id}`, {
     method: 'PATCH',
     body: JSON.stringify({
       status: 'claimed',
@@ -143,11 +157,6 @@ async function claimAndRunJob() {
       lease_expires_at: new Date(Date.now() + MAX_JOB_TIME).toISOString(),
     }),
   });
-
-  if (claimed && claimed.error) {
-    console.error(`Failed to claim job ${job.id}:`, claimed.error);
-    return;
-  }
 
   // Execute
   const start = Date.now();
@@ -203,21 +212,6 @@ async function claimAndRunJob() {
     }),
   });
 
-  // Update worker stats
-  if (workerId) {
-    const current = await apiCall(`/X1Worker/${workerId}`);
-    if (current && !current.error) {
-      await apiCall(`/X1Worker/${workerId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          jobs_completed: (current.jobs_completed || 0) + (error ? 0 : 1),
-          jobs_failed: (current.jobs_failed || 0) + (error ? 1 : 0),
-          last_seen_at: new Date().toISOString(),
-        }),
-      });
-    }
-  }
-
   console.log(`[${new Date().toISOString()}] Job ${job.id} ${error ? 'failed' : 'done'} in ${duration}ms`);
 }
 
@@ -235,26 +229,19 @@ function run(cmd, timeout = MAX_JOB_TIME, stdin = null) {
 }
 
 async function loop() {
-  console.log(`[${new Date().toISOString()}] X1 Fleet Bridge Worker v2 starting: ${WORKER_NAME}`);
+  console.log(`[${new Date().toISOString()}] X1 Fleet Bridge Worker v3 starting: ${WORKER_NAME}`);
   console.log(`API: ${API}`);
   console.log('Press Ctrl+C to stop.\n');
 
   const ok = await registerWorker();
   if (!ok) {
-    console.error('Could not register worker. Check X1_BASE_URL and X1_WORKER_TOKEN.');
+    console.error('Could not register worker. Check X1_WORKER_TOKEN.');
     process.exit(1);
   }
 
-  // Heartbeat every 30 seconds
   setInterval(heartbeat, HEARTBEAT_INTERVAL);
-
-  // Poll for jobs every 5 seconds
   setInterval(async () => {
-    try {
-      await claimAndRunJob();
-    } catch (e) {
-      console.error('Job poll error:', e.message);
-    }
+    try { await claimAndRunJob(); } catch (e) { console.error('Job poll error:', e.message); }
   }, POLL_INTERVAL);
 
   console.log('Worker is live. Waiting for jobs...\n');
