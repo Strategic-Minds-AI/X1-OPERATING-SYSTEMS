@@ -1,115 +1,165 @@
 /*
- * X1 Fleet Bridge Worker
+ * X1 Fleet Bridge Worker v2
  * Run: node apps/strategic-minds-v2/bridge/worker.js
  *
- * This worker connects to the X1 Operating System, claims queued jobs,
- * executes them locally (Ollama chat, Docker commands, host shell),
- * and reports results back. It is the bridge between the cloud control
- * surface and the local machine.
+ * Connects to X1 directly via the Base44 API. No custom functions needed.
+ * Creates a worker record, heartbeats, polls for queued jobs, executes them,
+ * and reports results back.
  */
 
 import { exec } from 'child_process';
 import os from 'os';
 
-const BASE_URL = process.env.X1_BASE_URL || '';
+// The app runtime URL (not the editor URL)
+const BASE_URL = process.env.X1_BASE_URL || 'https://1-operating-system.base44.app';
 const WORKER_TOKEN = process.env.X1_WORKER_TOKEN || '';
 const WORKER_NAME = process.env.X1_WORKER_NAME || os.hostname();
 const POLL_INTERVAL = 5000;
+const HEARTBEAT_INTERVAL = 30000;
 const MAX_JOB_TIME = 120000;
 
-if (!BASE_URL || !WORKER_TOKEN) {
-  console.error('Missing X1_BASE_URL or X1_WORKER_TOKEN. Set them in your environment or .env file.');
+if (!WORKER_TOKEN) {
+  console.error('Missing X1_WORKER_TOKEN. Set it in your environment or .env file.');
   console.error('Get the worker token from the X1 Secrets page.');
   process.exit(1);
 }
 
-async function api(path, opts = {}) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...opts,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${WORKER_TOKEN}`,
-      ...(opts.headers || {}),
-    },
-  });
-  return res.json();
+const API = `${BASE_URL}/api/v1/entities`;
+const HEADERS = {
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${WORKER_TOKEN}`,
+};
+
+async function apiCall(path, opts = {}) {
+  try {
+    const res = await fetch(`${API}${path}`, {
+      ...opts,
+      headers: { ...HEADERS, ...(opts.headers || {}) },
+    });
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 500) }; }
+    if (!res.ok) {
+      return { error: `API ${res.status}: ${text.slice(0, 300)}` };
+    }
+    return data;
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+let workerId = null;
+
+async function registerWorker() {
+  const dockerVer = await run('docker --version 2>&1 || echo "not available"');
+  const ollamaVer = await run('ollama --version 2>&1 || echo "not available"');
+  let modelList = [];
+  try {
+    const models = await run('ollama list --format json 2>/dev/null || echo "[]"');
+    modelList = JSON.parse(models).map(m => m.name).filter(Boolean);
+  } catch {}
+
+  // Try to find existing worker by name
+  const existing = await apiCall(`/X1Worker?filter=${encodeURIComponent(JSON.stringify({ name: WORKER_NAME }))}&limit=1`);
+  const items = existing && existing.items ? existing.items : (Array.isArray(existing) ? existing : []);
+
+  const body = {
+    name: WORKER_NAME,
+    host: os.hostname(),
+    platform: os.platform(),
+    status: 'online',
+    kind: 'mixed',
+    docker_available: !dockerVer.includes('not available'),
+    docker_version: dockerVer.trim(),
+    ollama_version: ollamaVer.trim(),
+    models: modelList,
+    shell_enabled: true,
+    capabilities: ['ollama_chat', 'docker_ps', 'docker_images', 'docker_logs', 'docker_run', 'host_shell', 'sandbox_run'],
+    last_seen_at: new Date().toISOString(),
+    jobs_completed: 0,
+    jobs_failed: 0,
+    image_count: 0,
+  };
+
+  if (items.length > 0 && items[0].id) {
+    // Update existing
+    workerId = items[0].id;
+    await apiCall(`/X1Worker/${workerId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+  } else {
+    // Create new
+    const created = await apiCall('/X1Worker', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    if (created && created.id) {
+      workerId = created.id;
+    } else if (created && created.error) {
+      console.error('Failed to register worker:', created.error);
+      return false;
+    }
+  }
+
+  console.log(`[${new Date().toISOString()}] Worker registered: ${WORKER_NAME} (id: ${workerId || 'unknown'})`);
+  console.log(`  Docker: ${!dockerVer.includes('not available') ? dockerVer.trim() : 'not available'}`);
+  console.log(`  Ollama: ${!ollamaVer.includes('not available') ? ollamaVer.trim() : 'not available'}`);
+  console.log(`  Models: ${modelList.length > 0 ? modelList.join(', ') : 'none installed'}`);
+  return true;
 }
 
 async function heartbeat() {
+  if (!workerId) return;
   try {
-    const dockerVer = await run('docker --version 2>&1 || echo "not available"');
-    const ollamaVer = await run('ollama --version 2>&1 || echo "not available"');
-    const models = await run('ollama list --format json 2>/dev/null || echo "[]"');
-    let modelList = [];
-    try { modelList = JSON.parse(models).map(m => m.name); } catch {}
-
-    await api('/functions/x1FleetHeartbeat', {
-      method: 'POST',
+    await apiCall(`/X1Worker/${workerId}`, {
+      method: 'PATCH',
       body: JSON.stringify({
-        name: WORKER_NAME,
-        platform: os.platform(),
-        host: os.hostname(),
-        docker_available: !dockerVer.includes('not available'),
-        docker_version: dockerVer.trim(),
-        ollama_version: ollamaVer.trim(),
-        models: modelList,
-        shell_enabled: true,
-        capabilities: ['ollama_chat', 'docker_ps', 'docker_images', 'docker_logs', 'docker_run', 'host_shell'],
-        kind: 'mixed',
+        status: 'online',
+        last_seen_at: new Date().toISOString(),
       }),
     });
-    console.log(`[${new Date().toISOString()}] Heartbeat sent: ${modelList.length} models, docker=${!dockerVer.includes('not available')}`);
   } catch (e) {
     console.error('Heartbeat failed:', e.message);
   }
 }
 
-function run(cmd, timeout = MAX_JOB_TIME) {
-  return new Promise((resolve) => {
-    exec(cmd, { timeout, maxBuffer: 1024 * 1024 * 5 }, (err, stdout, stderr) => {
-      if (err) resolve(stderr || err.message);
-      resolve(stdout || '');
-    });
+async function claimAndRunJob() {
+  // Find queued jobs
+  const queued = await apiCall(`/X1BridgeJob?filter=${encodeURIComponent(JSON.stringify({ status: 'queued' }))}&limit=1&sort=created_date`);
+  const items = queued && queued.items ? queued.items : (Array.isArray(queued) ? queued : []);
+  if (!items.length) return;
+
+  const job = items[0];
+  console.log(`[${new Date().toISOString()}] Claiming job ${job.id}: ${job.title || 'untitled'} (${job.kind})`);
+
+  // Claim it
+  const claimed = await apiCall(`/X1BridgeJob/${job.id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      status: 'claimed',
+      claimed_at: new Date().toISOString(),
+      worker_name: WORKER_NAME,
+      lease_expires_at: new Date(Date.now() + MAX_JOB_TIME).toISOString(),
+    }),
   });
-}
 
-async function claimJob() {
-  try {
-    const data = await api('/functions/x1FleetClaim', { method: 'POST' });
-    return data && data.job ? data.job : null;
-  } catch (e) {
-    console.error('Claim failed:', e.message);
-    return null;
+  if (claimed && claimed.error) {
+    console.error(`Failed to claim job ${job.id}:`, claimed.error);
+    return;
   }
-}
 
-async function completeJob(jobId, result, error) {
-  try {
-    await api('/functions/x1FleetComplete', {
-      method: 'POST',
-      body: JSON.stringify({
-        job_id: jobId,
-        result: (result || '').slice(0, 8000),
-        error: error || '',
-        worker_name: WORKER_NAME,
-      }),
-    });
-  } catch (e) {
-    console.error('Complete failed:', e.message);
-  }
-}
-
-async function executeJob(job) {
-  console.log(`[${new Date().toISOString()}] Executing job ${job.id}: ${job.title} (${job.kind})`);
+  // Execute
   const start = Date.now();
+  let result = '';
+  let error = '';
 
   try {
-    let result = '';
     switch (job.kind) {
       case 'ollama_chat': {
         const model = job.model || 'llama3.2';
         const prompt = (job.system_prompt ? `SYSTEM: ${job.system_prompt}\n\n` : '') + (job.prompt || '');
-        result = await run(`ollama run ${model} --nowordwrap 2>&1 <<'PROMPT_EOF'\n${prompt}\nPROMPT_EOF`);
+        result = await run(`ollama run ${model} --nowordwrap 2>&1`, undefined, prompt);
         break;
       }
       case 'ollama_models':
@@ -128,35 +178,86 @@ async function executeJob(job) {
         result = await run(job.command || 'echo "No command provided"', MAX_JOB_TIME);
         break;
       case 'host_shell':
-        result = await run(job.command || 'echo "No command provided"', MAX_JOB_TIME);
+        result = await run(job.command || job.prompt || 'echo "No command provided"', MAX_JOB_TIME);
         break;
       default:
         result = `Unknown job kind: ${job.kind}`;
     }
-    await completeJob(job.id, result, null);
-    console.log(`[${new Date().toISOString()}] Job ${job.id} done in ${Date.now() - start}ms`);
   } catch (e) {
-    await completeJob(job.id, '', e.message);
-    console.error(`Job ${job.id} failed:`, e.message);
+    error = e.message;
+    result = '';
   }
+
+  const duration = Date.now() - start;
+
+  // Complete the job
+  await apiCall(`/X1BridgeJob/${job.id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      status: error ? 'failed' : 'done',
+      result: (result || '').slice(0, 8000),
+      error: error || '',
+      worker_name: WORKER_NAME,
+      duration_ms: duration,
+      finished_at: new Date().toISOString(),
+    }),
+  });
+
+  // Update worker stats
+  if (workerId) {
+    const current = await apiCall(`/X1Worker/${workerId}`);
+    if (current && !current.error) {
+      await apiCall(`/X1Worker/${workerId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          jobs_completed: (current.jobs_completed || 0) + (error ? 0 : 1),
+          jobs_failed: (current.jobs_failed || 0) + (error ? 1 : 0),
+          last_seen_at: new Date().toISOString(),
+        }),
+      });
+    }
+  }
+
+  console.log(`[${new Date().toISOString()}] Job ${job.id} ${error ? 'failed' : 'done'} in ${duration}ms`);
+}
+
+function run(cmd, timeout = MAX_JOB_TIME, stdin = null) {
+  return new Promise((resolve) => {
+    const child = exec(cmd, { timeout, maxBuffer: 1024 * 1024 * 5, shell: 'powershell.exe' }, (err, stdout, stderr) => {
+      if (err) resolve(stderr || err.message);
+      resolve(stdout || '');
+    });
+    if (stdin && child.stdin) {
+      child.stdin.write(stdin);
+      child.stdin.end();
+    }
+  });
 }
 
 async function loop() {
-  console.log(`[${new Date().toISOString()}] X1 Fleet Bridge Worker starting: ${WORKER_NAME}`);
-  console.log(`Connecting to ${BASE_URL}`);
+  console.log(`[${new Date().toISOString()}] X1 Fleet Bridge Worker v2 starting: ${WORKER_NAME}`);
+  console.log(`API: ${API}`);
   console.log('Press Ctrl+C to stop.\n');
 
-  // Initial heartbeat
-  await heartbeat();
+  const ok = await registerWorker();
+  if (!ok) {
+    console.error('Could not register worker. Check X1_BASE_URL and X1_WORKER_TOKEN.');
+    process.exit(1);
+  }
 
-  // Heartbeat every 60 seconds
-  setInterval(heartbeat, 60000);
+  // Heartbeat every 30 seconds
+  setInterval(heartbeat, HEARTBEAT_INTERVAL);
 
   // Poll for jobs every 5 seconds
   setInterval(async () => {
-    const job = await claimJob();
-    if (job) await executeJob(job);
+    try {
+      await claimAndRunJob();
+    } catch (e) {
+      console.error('Job poll error:', e.message);
+    }
   }, POLL_INTERVAL);
+
+  console.log('Worker is live. Waiting for jobs...\n');
 }
 
 loop();
