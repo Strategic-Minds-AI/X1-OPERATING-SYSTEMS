@@ -1,9 +1,8 @@
 /*
- * X1 Fleet Bridge Worker v4
+ * X1 Fleet Bridge Worker v5
  *
- * Reads queued jobs from X1 (GET works), executes them locally,
- * and writes results to a file that gets committed to git.
- * CLAW reads the results from GitHub and updates the job records.
+ * Reads queued jobs from X1, executes them locally,
+ * writes results to a file committed to git.
  *
  * Run: node apps/strategic-minds-v2/bridge/worker.js
  */
@@ -37,10 +36,15 @@ const processedJobs = new Set();
 
 async function apiGet(path) {
   try {
-    const res = await fetch(`${API}${path}`, { headers: HEADERS });
+    const url = `${API}${path}`;
+    const res = await fetch(url, { headers: HEADERS });
     const text = await res.text();
-    if (!res.ok) return { error: `${res.status}: ${text.slice(0, 200)}` };
-    return JSON.parse(text);
+    if (!res.ok) return { error: `${res.status}: ${text.slice(0, 300)}` };
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { error: `Non-JSON response: ${text.slice(0, 200)}` };
+    }
   } catch (e) {
     return { error: e.message };
   }
@@ -55,39 +59,38 @@ function run(cmd, timeout = 120000) {
   });
 }
 
-async function checkMachine() {
-  const docker = await run('docker --version 2>&1 || echo "not available"');
-  const ollama = await run('ollama --version 2>&1 || echo "not available"');
-  let models = [];
-  try {
-    const list = await run('ollama list 2>&1 || echo ""');
-    models = list.split('\n').filter(l => l.trim() && !l.includes('not available')).map(l => l.split(/\s+/)[0]).filter(Boolean);
-  } catch {}
-  return {
-    name: WORKER_NAME,
-    host: os.hostname(),
-    platform: os.platform(),
-    docker: !docker.includes('not available') ? docker.trim() : 'not available',
-    ollama: !ollama.includes('not available') ? ollama.trim() : 'not available',
-    models,
-    timestamp: new Date().toISOString(),
-  };
-}
-
 async function pollJobs() {
-  // Read queued jobs
-  const filter = encodeURIComponent(JSON.stringify({ status: 'queued' }));
-  const data = await apiGet(`/X1BridgeJob?filter=${filter}&limit=3&sort=created_date`);
+  // Try reading all X1BridgeJob records (no filter first, to see what we get)
+  let data = await apiGet('/X1BridgeJob?limit=5&sort=-created_date');
 
   if (data.error) {
-    if (!data.error.includes('[]')) console.error('Poll error:', data.error);
+    console.error(`[${new Date().toISOString()}] Poll error: ${data.error}`);
     return;
   }
 
-  const jobs = Array.isArray(data) ? data : (data.items || []);
-  if (!jobs.length) return;
+  // Handle different response formats
+  let jobs = [];
+  if (Array.isArray(data)) {
+    jobs = data;
+  } else if (data.items) {
+    jobs = data.items;
+  } else if (data.data) {
+    jobs = Array.isArray(data.data) ? data.data : (data.data.items || []);
+  }
 
-  for (const job of jobs) {
+  // Log what we got on first poll
+  if (processedJobs.size === 0) {
+    console.log(`[${new Date().toISOString()}] API returned ${jobs.length} job(s)`);
+    if (jobs.length > 0) {
+      console.log(`  First job: ${JSON.stringify(jobs[0]).slice(0, 200)}`);
+    }
+  }
+
+  // Filter for queued jobs client-side
+  const queued = jobs.filter(j => j.status === 'queued');
+  if (!queued.length) return;
+
+  for (const job of queued) {
     if (processedJobs.has(job.id)) continue;
     processedJobs.add(job.id);
 
@@ -119,7 +122,7 @@ async function pollJobs() {
         case 'docker_run':
         case 'host_shell':
         case 'sandbox_run':
-          result = await run(job.command || job.prompt || 'echo "No command provided"');
+          result = await run(job.command || job.prompt || job.prompt_text || 'echo "No command provided"');
           break;
         default:
           result = `Unknown job kind: ${job.kind}`;
@@ -130,9 +133,8 @@ async function pollJobs() {
 
     const duration = Date.now() - start;
     console.log(`  Done in ${duration}ms${error ? ' (ERROR: ' + error + ')' : ''}`);
-    if (result) console.log(`  Result: ${result.slice(0, 200)}...`);
+    if (result) console.log(`  Result: ${result.slice(0, 300)}`);
 
-    // Write result to file for git commit
     writeResult(job.id, {
       job_id: job.id,
       title: job.title,
@@ -146,15 +148,12 @@ async function pollJobs() {
     });
   }
 
-  // Commit and push results
   await commitResults();
 }
 
 function writeResult(jobId, result) {
   if (!existsSync(RESULTS_DIR)) mkdirSync(RESULTS_DIR, { recursive: true });
-  // Write individual result
   writeFileSync(join(RESULTS_DIR, `${jobId}.json`), JSON.stringify(result, null, 2));
-  // Update latest
   let latest = { worker: WORKER_NAME, timestamp: new Date().toISOString(), results: {} };
   if (existsSync(RESULTS_FILE)) {
     try { latest = JSON.parse(readFileSync(RESULTS_FILE, 'utf-8')); } catch {}
@@ -166,11 +165,13 @@ function writeResult(jobId, result) {
 
 async function commitResults() {
   try {
-    await run('git add apps/strategic-minds-v2/bridge/results/ 2>&1');
-    const status = await run('git diff --cached --name-only 2>&1');
-    if (!status.trim()) return; // nothing to commit
-    await run(`git commit -m "Bridge worker results: ${new Date().toISOString()}" 2>&1`);
-    await run('git push 2>&1');
+    // Make sure we're in the repo root
+    const repoRoot = join(__dirname, '..', '..', '..');
+    await run(`cd "${repoRoot}" && git add apps/strategic-minds-v2/bridge/results/ 2>&1`);
+    const status = await run(`cd "${repoRoot}" && git diff --cached --name-only 2>&1`);
+    if (!status.trim()) return;
+    await run(`cd "${repoRoot}" && git commit -m "Bridge results: ${new Date().toISOString()}" 2>&1`);
+    await run(`cd "${repoRoot}" && git push 2>&1`);
     console.log(`[${new Date().toISOString()}] Results committed and pushed`);
   } catch (e) {
     console.error('Git commit failed:', e.message);
@@ -178,23 +179,25 @@ async function commitResults() {
 }
 
 async function loop() {
-  console.log(`[${new Date().toISOString()}] X1 Fleet Bridge Worker v4: ${WORKER_NAME}`);
+  console.log(`[${new Date().toISOString()}] X1 Fleet Bridge Worker v5: ${WORKER_NAME}`);
   console.log(`API: ${API}`);
   console.log('Press Ctrl+C to stop.\n');
 
-  // Report machine info
-  const machine = await checkMachine();
-  console.log(`Docker: ${machine.docker}`);
-  console.log(`Ollama: ${machine.ollama}`);
-  console.log(`Models: ${machine.models.length > 0 ? machine.models.join(', ') : 'none'}\n`);
-
-  // Write machine info as first result
+  // Write machine info
   if (!existsSync(RESULTS_DIR)) mkdirSync(RESULTS_DIR, { recursive: true });
+  const machine = {
+    name: WORKER_NAME,
+    host: os.hostname(),
+    platform: os.platform(),
+    timestamp: new Date().toISOString(),
+  };
   writeFileSync(join(RESULTS_DIR, 'machine.json'), JSON.stringify(machine, null, 2));
+
+  // First poll immediately
+  await pollJobs();
   await commitResults();
 
-  console.log('Worker live. Polling for jobs every 8 seconds...\n');
-
+  console.log('\nPolling for jobs every 8 seconds...\n');
   setInterval(pollJobs, POLL_INTERVAL);
 }
 
