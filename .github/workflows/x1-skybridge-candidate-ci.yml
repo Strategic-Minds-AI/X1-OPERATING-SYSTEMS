@@ -35,7 +35,7 @@ jobs:
       - name: Type safety
         run: npx tsc --noEmit
       - name: Deterministic negative and regression tests
-        run: node --import tsx --test tests/model.test.ts tests/integration.test.ts tests/worker-bridge.test.ts tests/security-gates.test.ts
+        run: node --import tsx --test tests/model.test.ts tests/integration.test.ts tests/worker-bridge.test.ts tests/security-gates.test.ts tests/oauth.test.ts
       - name: Build bundled MCP candidate
         run: npm run build
       - name: Dependency security hard gate
