@@ -4,6 +4,7 @@ import { makePlan, reviewEvidence } from "./model.js";
 import { getSystemSnapshot, getLocalJobs } from "./operations.js";
 import { createCandidate, validateCandidate } from "./site-factory.js";
 import { inspectProbeJob } from "./worker-bridge.js";
+import { stagingOAuth } from "./oauth.js";
 
 const stepSchema = z.object({
  title:z.string().trim().min(3).max(120),
@@ -12,7 +13,8 @@ const stepSchema = z.object({
 });
 export const app = new Skybridge({
  name:"x1-goal-to-receipt",
- version:"0.2.0",
+ version:"0.4.0",
+ oauth:stagingOAuth(),
  handler:(server)=>server
  .registerTool({
   name:"create_goal_plan",
