@@ -1,250 +1,201 @@
 /*
- * X1 Fleet Bridge Worker v3
- * Run: node apps/strategic-minds-v2/bridge/worker.js
+ * X1 Fleet Bridge Worker v4
  *
- * Connects to X1 directly via the Base44 API. No custom functions needed.
- * Creates a worker record, heartbeats, polls for queued jobs, executes them,
- * and reports results back.
+ * Reads queued jobs from X1 (GET works), executes them locally,
+ * and writes results to a file that gets committed to git.
+ * CLAW reads the results from GitHub and updates the job records.
+ *
+ * Run: node apps/strategic-minds-v2/bridge/worker.js
  */
 
 import { exec } from 'child_process';
 import os from 'os';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-// The app runtime URL — override any editor URL the user may have set
-let rawUrl = process.env.X1_BASE_URL || 'https://1-operating-system.base44.app';
-// If they pasted the editor URL, extract the app slug and fix it
-if (rawUrl.includes('app.base44.com')) {
-  rawUrl = 'https://1-operating-system.base44.app';
-}
-const BASE_URL = rawUrl.replace(/\/+$/, '');
-const WORKER_TOKEN = process.env.X1_WORKER_TOKEN || '';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const BASE_URL = 'https://1-operating-system.base44.app';
+const TOKEN = process.env.X1_WORKER_TOKEN || '';
 const WORKER_NAME = process.env.X1_WORKER_NAME || os.hostname();
-const POLL_INTERVAL = 5000;
-const HEARTBEAT_INTERVAL = 30000;
-const MAX_JOB_TIME = 120000;
+const POLL_INTERVAL = 8000;
+const RESULTS_DIR = join(__dirname, 'results');
+const RESULTS_FILE = join(RESULTS_DIR, 'latest.json');
 
-if (!WORKER_TOKEN) {
-  console.error('Missing X1_WORKER_TOKEN. Set it in your environment or .env file.');
-  console.error('Get the worker token from the X1 Secrets page.');
+if (!TOKEN) {
+  console.error('Missing X1_WORKER_TOKEN.');
   process.exit(1);
 }
 
-const API = `${BASE_URL}/api/v1/entities`;
+const API = `${BASE_URL}/api/entities`;
 const HEADERS = {
   'Content-Type': 'application/json',
-  'Authorization': `Bearer ${WORKER_TOKEN}`,
+  'Authorization': `Bearer ${TOKEN}`,
 };
 
-async function apiCall(path, opts = {}) {
+const processedJobs = new Set();
+
+async function apiGet(path) {
   try {
-    const res = await fetch(`${API}${path}`, {
-      ...opts,
-      headers: { ...HEADERS, ...(opts.headers || {}) },
-    });
+    const res = await fetch(`${API}${path}`, { headers: HEADERS });
     const text = await res.text();
-    let data;
-    try { data = JSON.parse(text); } catch { data = { raw: text.slice(0, 500) }; }
-    if (!res.ok) {
-      return { error: `API ${res.status}: ${text.slice(0, 300)}` };
-    }
-    return data;
+    if (!res.ok) return { error: `${res.status}: ${text.slice(0, 200)}` };
+    return JSON.parse(text);
   } catch (e) {
     return { error: e.message };
   }
 }
 
-let workerId = null;
+function run(cmd, timeout = 120000) {
+  return new Promise((resolve) => {
+    exec(cmd, { timeout, maxBuffer: 1024 * 1024 * 5, shell: 'powershell.exe' }, (err, stdout, stderr) => {
+      if (err && !stdout) resolve(stderr || err.message);
+      resolve(stdout || stderr || '');
+    });
+  });
+}
 
-async function registerWorker() {
-  const dockerVer = await run('docker --version 2>&1 || echo "not available"');
-  const ollamaVer = await run('ollama --version 2>&1 || echo "not available"');
-  let modelList = [];
+async function checkMachine() {
+  const docker = await run('docker --version 2>&1 || echo "not available"');
+  const ollama = await run('ollama --version 2>&1 || echo "not available"');
+  let models = [];
   try {
-    const models = await run('ollama list --format json 2>/dev/null || echo "[]"');
-    modelList = JSON.parse(models).map(m => m.name).filter(Boolean);
+    const list = await run('ollama list 2>&1 || echo ""');
+    models = list.split('\n').filter(l => l.trim() && !l.includes('not available')).map(l => l.split(/\s+/)[0]).filter(Boolean);
   } catch {}
-
-  const body = {
+  return {
     name: WORKER_NAME,
     host: os.hostname(),
     platform: os.platform(),
-    status: 'online',
-    kind: 'mixed',
-    docker_available: !dockerVer.includes('not available'),
-    docker_version: dockerVer.trim(),
-    ollama_version: ollamaVer.trim(),
-    models: modelList,
-    shell_enabled: true,
-    capabilities: ['ollama_chat', 'docker_ps', 'docker_images', 'docker_logs', 'docker_run', 'host_shell', 'sandbox_run'],
-    last_seen_at: new Date().toISOString(),
-    jobs_completed: 0,
-    jobs_failed: 0,
-    image_count: 0,
+    docker: !docker.includes('not available') ? docker.trim() : 'not available',
+    ollama: !ollama.includes('not available') ? ollama.trim() : 'not available',
+    models,
+    timestamp: new Date().toISOString(),
   };
-
-  // Try to find existing worker by name
-  const filterParam = encodeURIComponent(JSON.stringify({ name: WORKER_NAME }));
-  const existing = await apiCall(`/X1Worker?filter=${filterParam}&limit=1`);
-  const items = existing && existing.items ? existing.items : (Array.isArray(existing) ? existing : []);
-
-  if (items.length > 0 && items[0].id) {
-    workerId = items[0].id;
-    await apiCall(`/X1Worker/${workerId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(body),
-    });
-  } else {
-    const created = await apiCall('/X1Worker', {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
-    if (created && created.id) {
-      workerId = created.id;
-    } else if (created && created.error) {
-      console.error('Failed to register worker:', created.error);
-      // Try with PUT as fallback
-      const putRes = await apiCall('/X1Worker', {
-        method: 'PUT',
-        body: JSON.stringify(body),
-      });
-      if (putRes && putRes.id) {
-        workerId = putRes.id;
-      } else {
-        console.error('PUT also failed:', putRes && putRes.error ? putRes.error : 'unknown');
-        return false;
-      }
-    }
-  }
-
-  console.log(`[${new Date().toISOString()}] Worker registered: ${WORKER_NAME} (id: ${workerId || 'unknown'})`);
-  console.log(`  Docker: ${!dockerVer.includes('not available') ? dockerVer.trim() : 'not available'}`);
-  console.log(`  Ollama: ${!ollamaVer.includes('not available') ? ollamaVer.trim() : 'not available'}`);
-  console.log(`  Models: ${modelList.length > 0 ? modelList.join(', ') : 'none installed'}`);
-  return true;
 }
 
-async function heartbeat() {
-  if (!workerId) return;
-  try {
-    await apiCall(`/X1Worker/${workerId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        status: 'online',
-        last_seen_at: new Date().toISOString(),
-      }),
-    });
-  } catch (e) {
-    console.error('Heartbeat failed:', e.message);
+async function pollJobs() {
+  // Read queued jobs
+  const filter = encodeURIComponent(JSON.stringify({ status: 'queued' }));
+  const data = await apiGet(`/X1BridgeJob?filter=${filter}&limit=3&sort=created_date`);
+
+  if (data.error) {
+    if (!data.error.includes('[]')) console.error('Poll error:', data.error);
+    return;
   }
-}
 
-async function claimAndRunJob() {
-  const filterParam = encodeURIComponent(JSON.stringify({ status: 'queued' }));
-  const queued = await apiCall(`/X1BridgeJob?filter=${filterParam}&limit=1&sort=created_date`);
-  const items = queued && queued.items ? queued.items : (Array.isArray(queued) ? queued : []);
-  if (!items.length) return;
+  const jobs = Array.isArray(data) ? data : (data.items || []);
+  if (!jobs.length) return;
 
-  const job = items[0];
-  console.log(`[${new Date().toISOString()}] Claiming job ${job.id}: ${job.title || 'untitled'} (${job.kind})`);
+  for (const job of jobs) {
+    if (processedJobs.has(job.id)) continue;
+    processedJobs.add(job.id);
 
-  // Claim it
-  await apiCall(`/X1BridgeJob/${job.id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({
-      status: 'claimed',
-      claimed_at: new Date().toISOString(),
-      worker_name: WORKER_NAME,
-      lease_expires_at: new Date(Date.now() + MAX_JOB_TIME).toISOString(),
-    }),
-  });
+    console.log(`\n[${new Date().toISOString()}] Job ${job.id}: ${job.title || 'untitled'} (${job.kind})`);
+    const start = Date.now();
+    let result = '';
+    let error = '';
 
-  // Execute
-  const start = Date.now();
-  let result = '';
-  let error = '';
-
-  try {
-    switch (job.kind) {
-      case 'ollama_chat': {
-        const model = job.model || 'llama3.2';
-        const prompt = (job.system_prompt ? `SYSTEM: ${job.system_prompt}\n\n` : '') + (job.prompt || '');
-        result = await run(`ollama run ${model} --nowordwrap 2>&1`, undefined, prompt);
-        break;
+    try {
+      switch (job.kind) {
+        case 'ollama_chat': {
+          const model = job.model || 'llama3.2';
+          const prompt = (job.system_prompt ? `SYSTEM: ${job.system_prompt}\n\n` : '') + (job.prompt || '');
+          result = await run(`echo '${prompt.replace(/'/g, "''")}' | ollama run ${model} 2>&1`);
+          break;
+        }
+        case 'ollama_models':
+          result = await run('ollama list 2>&1');
+          break;
+        case 'docker_ps':
+          result = await run('docker ps -a 2>&1');
+          break;
+        case 'docker_images':
+          result = await run('docker images 2>&1');
+          break;
+        case 'docker_logs':
+          result = await run(`docker logs --tail ${job.tail || 200} ${job.container || ''} 2>&1`);
+          break;
+        case 'docker_run':
+        case 'host_shell':
+        case 'sandbox_run':
+          result = await run(job.command || job.prompt || 'echo "No command provided"');
+          break;
+        default:
+          result = `Unknown job kind: ${job.kind}`;
       }
-      case 'ollama_models':
-        result = await run('ollama list 2>&1');
-        break;
-      case 'docker_ps':
-        result = await run('docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.Image}}" 2>&1');
-        break;
-      case 'docker_images':
-        result = await run('docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" 2>&1');
-        break;
-      case 'docker_logs':
-        result = await run(`docker logs --tail ${job.tail || 200} ${job.container || ''} 2>&1`);
-        break;
-      case 'docker_run':
-        result = await run(job.command || 'echo "No command provided"', MAX_JOB_TIME);
-        break;
-      case 'host_shell':
-        result = await run(job.command || job.prompt || 'echo "No command provided"', MAX_JOB_TIME);
-        break;
-      default:
-        result = `Unknown job kind: ${job.kind}`;
+    } catch (e) {
+      error = e.message;
     }
-  } catch (e) {
-    error = e.message;
-    result = '';
-  }
 
-  const duration = Date.now() - start;
+    const duration = Date.now() - start;
+    console.log(`  Done in ${duration}ms${error ? ' (ERROR: ' + error + ')' : ''}`);
+    if (result) console.log(`  Result: ${result.slice(0, 200)}...`);
 
-  // Complete the job
-  await apiCall(`/X1BridgeJob/${job.id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({
+    // Write result to file for git commit
+    writeResult(job.id, {
+      job_id: job.id,
+      title: job.title,
+      kind: job.kind,
       status: error ? 'failed' : 'done',
       result: (result || '').slice(0, 8000),
       error: error || '',
-      worker_name: WORKER_NAME,
+      worker: WORKER_NAME,
       duration_ms: duration,
       finished_at: new Date().toISOString(),
-    }),
-  });
+    });
+  }
 
-  console.log(`[${new Date().toISOString()}] Job ${job.id} ${error ? 'failed' : 'done'} in ${duration}ms`);
+  // Commit and push results
+  await commitResults();
 }
 
-function run(cmd, timeout = MAX_JOB_TIME, stdin = null) {
-  return new Promise((resolve) => {
-    const child = exec(cmd, { timeout, maxBuffer: 1024 * 1024 * 5, shell: 'powershell.exe' }, (err, stdout, stderr) => {
-      if (err) resolve(stderr || err.message);
-      resolve(stdout || '');
-    });
-    if (stdin && child.stdin) {
-      child.stdin.write(stdin);
-      child.stdin.end();
-    }
-  });
+function writeResult(jobId, result) {
+  if (!existsSync(RESULTS_DIR)) mkdirSync(RESULTS_DIR, { recursive: true });
+  // Write individual result
+  writeFileSync(join(RESULTS_DIR, `${jobId}.json`), JSON.stringify(result, null, 2));
+  // Update latest
+  let latest = { worker: WORKER_NAME, timestamp: new Date().toISOString(), results: {} };
+  if (existsSync(RESULTS_FILE)) {
+    try { latest = JSON.parse(readFileSync(RESULTS_FILE, 'utf-8')); } catch {}
+  }
+  latest.results[jobId] = result;
+  latest.timestamp = new Date().toISOString();
+  writeFileSync(RESULTS_FILE, JSON.stringify(latest, null, 2));
+}
+
+async function commitResults() {
+  try {
+    await run('git add apps/strategic-minds-v2/bridge/results/ 2>&1');
+    const status = await run('git diff --cached --name-only 2>&1');
+    if (!status.trim()) return; // nothing to commit
+    await run(`git commit -m "Bridge worker results: ${new Date().toISOString()}" 2>&1`);
+    await run('git push 2>&1');
+    console.log(`[${new Date().toISOString()}] Results committed and pushed`);
+  } catch (e) {
+    console.error('Git commit failed:', e.message);
+  }
 }
 
 async function loop() {
-  console.log(`[${new Date().toISOString()}] X1 Fleet Bridge Worker v3 starting: ${WORKER_NAME}`);
+  console.log(`[${new Date().toISOString()}] X1 Fleet Bridge Worker v4: ${WORKER_NAME}`);
   console.log(`API: ${API}`);
   console.log('Press Ctrl+C to stop.\n');
 
-  const ok = await registerWorker();
-  if (!ok) {
-    console.error('Could not register worker. Check X1_WORKER_TOKEN.');
-    process.exit(1);
-  }
+  // Report machine info
+  const machine = await checkMachine();
+  console.log(`Docker: ${machine.docker}`);
+  console.log(`Ollama: ${machine.ollama}`);
+  console.log(`Models: ${machine.models.length > 0 ? machine.models.join(', ') : 'none'}\n`);
 
-  setInterval(heartbeat, HEARTBEAT_INTERVAL);
-  setInterval(async () => {
-    try { await claimAndRunJob(); } catch (e) { console.error('Job poll error:', e.message); }
-  }, POLL_INTERVAL);
+  // Write machine info as first result
+  if (!existsSync(RESULTS_DIR)) mkdirSync(RESULTS_DIR, { recursive: true });
+  writeFileSync(join(RESULTS_DIR, 'machine.json'), JSON.stringify(machine, null, 2));
+  await commitResults();
 
-  console.log('Worker is live. Waiting for jobs...\n');
+  console.log('Worker live. Polling for jobs every 8 seconds...\n');
+
+  setInterval(pollJobs, POLL_INTERVAL);
 }
 
 loop();
