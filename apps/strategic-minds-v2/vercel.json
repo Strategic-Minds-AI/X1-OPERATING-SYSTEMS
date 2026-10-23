@@ -62,9 +62,26 @@
           "value": "noindex, nofollow, noarchive"
         }
       ]
+    },
+    {
+      "source": "/oauth/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
     }
   ],
   "rewrites": [
+    {
+      "source": "/oauth/:path*",
+      "destination": "/index.html"
+    },
     {
       "source": "/admin/:path*",
       "destination": "/index.html"
