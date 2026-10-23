@@ -10,6 +10,7 @@ const VisualStudio=React.lazy(()=>import('./VisualStudio.jsx'));
 const X1AgentConsole=React.lazy(()=>import('./X1AgentConsole.jsx'));
 const LaunchStudio=React.lazy(()=>import('./LaunchStudio.jsx'));
 const PromptLab=React.lazy(()=>import('./PromptLab.jsx'));
+const OAuthConsent=React.lazy(()=>import('./OAuthConsent.jsx'));
 const CodingKanban=React.lazy(()=>import('./CodingKanban.jsx'));
 const IntelligenceWorkbench=React.lazy(()=>import('./IntelligenceWorkbench.jsx'));
 
@@ -37,6 +38,7 @@ function App(){
    <Route path="/admin/prompt-lab" element={<PromptLab/>}/>
    <Route path="/admin/intelligence" element={<IntelligenceWorkbench/>}/>
    <Route path="/admin/agent" element={<X1AgentConsole/>}/>
+   <Route path="/oauth/consent" element={<OAuthConsent/>}/>
    <Route path="/admin/launch-studio" element={<LaunchStudio/>}/>
    <Route path="*" element={<Navigate to="/v2/b" replace/>}/>
  </Routes></React.Suspense></BrowserRouter>;
