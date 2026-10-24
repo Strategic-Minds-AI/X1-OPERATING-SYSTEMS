@@ -80,5 +80,9 @@ test("all live release hard gates stay blocked without provider evidence", () =>
   assert.equal(m.staging.engine_source.sha, "dd9ea695d064e6b5e14bc6b42b61884632d275f7");
   assert.equal(m.staging.engine_source.unsafe_runtime, "chromium_no_sandbox");
   assert.equal(m.staging.engine_source.nonroot_verified, false);
+  assert.equal(m.staging.runtime_findings.engine_session_manager, "IN_PROCESS_ONLY");
+  assert.equal(m.staging.runtime_findings.session_metadata_persistence, "DISABLED_MISSING_STAGING_BINDING_AT_STARTUP");
+  assert.equal(m.staging.runtime_findings.hardened_sandbox, "NOT_VERIFIED_OLD_ENGINE_NO_SANDBOX");
+  assert.equal(m.staging.runtime_findings.database_restore_drill, "NOT_RUN");
   assert.equal(m.staging.legacy_project.access, "DENIED_VIEWER");
 });
