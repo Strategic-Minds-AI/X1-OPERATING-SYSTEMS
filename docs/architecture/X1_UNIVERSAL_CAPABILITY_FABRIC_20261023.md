@@ -171,8 +171,25 @@ Do not claim low cost without provider metering; full HA, isolated browser VMs, 
 
 **Mandatory release scoreboard (proposal):** 100% critical security/auth/tenant/backup-restoration checks PASS; no untested unsafe bypasses; functional/evidence-weighted score target >=95/100 measured across task completion, reliability, correctness, accessibility, privacy, cost efficiency and UX. A score never overrides a failed security hard gate.
 
-## 12. Current blocker and next single action
+## 12. Reconciled actual Railway source truth (2026-10-24)
 
-The Railway connector that once accessed the specific X1 staging project now responds \`link_id must identify an eligible linked account\` even for \`whoami\`; a prior login also produced a viewer-role denial. **A project invitation alone does not restore the ChatGPT OAuth link.** Reconnect the Railway plugin in ChatGPT (Settings -> Plugins -> Railway) and authorize the exact workspace **Strategic Minds AI** and project \`efc36e26-1f26-47bf-bc74-b81d95e8f262\`. See https://docs.railway.com/ai/mcp-server. Upon provider grant, verify \`whoami\`, project/environment, staged state, variable **names only**, backup inventory, current service health, then continue M2. No secret values requested.
+The user supplied two distinct Railway projects. **Do not deploy to either by guessing from the project name.**
 
-**No production deployment, paid spend, schema/RLS change, DNS update, bulk data movement, Git protected merge or external/customer actions are authorized by this architecture document.** Project sources stay recoverable; JARVIS hardware recovery hold remains active pending diagnostics.
+| Role | Exact Railway identity | Access via ChatGPT | Observed state |
+|---|---|---|---|
+| **Accessible X1 AI Browser** | project \`4fd76d35-df2c-4358-a936-0f5ac055d9d6\`, staging environment \`abc93895-5f8e-4c9b-b913-3daaf2595ba3\`, Strategic Minds AI workspace | READ VERIFIED with xps-admin OAuth | three services online, validator-v2 offline |
+| Separate original X1 CloudBrowser Staging | project \`efc36e26-1f26-47bf-bc74-b81d95e8f262\`, environment \`185d4731-13cd-4ee3-847c-bf9fe1c6c0cc\` | DENIED, insufficient viewer role with both ChatGPT links | UI Browser tab separately shows API, engine, Postgres, but cannot use linked Railway API to inspect or deploy |
+| X1 admin | \`Strategic-Minds-AI/X1-OPERATING-SYSTEMS\` | GitHub VERIFIED; PR #37 | staged branch and source contract passed CI; no live admin route deployed from branch |
+
+**Accessible X1 AI Browser project staging service inventory:**
+- \`cloud-browser-engine-staging\` service \`0aab1ee9-7ac0-474a-bd22-eaa3e6d50368\`: ONLINE Railway SUCCESS \`7ab6fb89-6019-43fd-a4ef-caea911e5bd1\`; source \`Strategic-Minds-AI/x1-ai-browser\` SHA \`dd9ea695d064e6b5e14bc6b42b61884632d275f7\`, root \`/clean-browser-engine\`, branch \`apex/cloud-browser-mcp-clean-20260927\`; **UNSAFE**: \`server.js\` calls Chromium \`--no-sandbox\` on actual session and readiness paths; Dockerfile does not set \`USER node\`. Railway online != secure.
+- \`cloud-browser-mcp-staging\` service \`50e888dc-8269-4f10-82d1-babbfd4f2990\`: ONLINE Railway SUCCESS \`44361cef-cd9c-4ea2-8c9d-8b5934f259d6\`; same source SHA root \`/mcp-server\`; public domain \`cloud-browser-mcp-staging-staging.up.railway.app\`; uses Bearer key and engine key; NOT verified as ChatGPT OAuth or tenant-safe.
+- \`cloud-browser-validator-staging\` service \`c287bd95-000c-4d04-89a4-a1e66554d43d\`: ONLINE SUCCESS \`eb61017e-9580-47c0-ac18-5aad8aa334d9\`; source \`Strategic-Minds-AI/x1-ai-browser\` SHA \`c9e9f75248f40695ad89c8d0f2f6082d566b9e10\`, root \`/staging-validator\`.
+- \`cloud-browser-validator-staging-v2\` service \`6683d8aa-a860-4911-8be8-02481b92966a\`: OFFLINE / no active Railway deployment; source \`Strategic-Minds-AI/cloud-browser-staging-validator\` main; do not add a third validator.
+- None of these staging services has a Railway volume. The separate original project has a Postgres volume but cannot be read through connected Railway API at this time.
+
+**Architectural reconciliation:** Treat \`4fd76d35\` as the **currently accessible X1 AI Browser staging candidate**, NOT as proven equivalent to \`efc36e26\`. Preserve original source separately. Do not clone live credentials, volumes, users, browser sessions, API tokens, DNS, or client data. Do not replace X1's canonical queue with browser-local state. Gate any migration on exact owner approval and backup/restore checks.
+
+**Next best safe action:** take read-only logs/config/health inventory from the accessible new project; pin source and compare hardening; prepare an isolated secure-engine release candidate built from \`strategic-cloud-browser\` PR #6 only after verifying host sandbox capability and outbound firewall design. The currently deployed engine is explicitly NOT APPROVED for untrusted website execution. Further deployment, secret binding, environment changes or billing need approval for the exact Railway service. Original project's access can be fixed independently by inviting/accepting the exact \`xps-admin\` identity or linking the owner Railway account; the browser-tab session is not the same authentication grant as the ChatGPT Railway API.
+
+**No production deployment, paid spend, schema/RLS change, DNS update, bulk data movement, Git protected merge or customer action was performed in this reconciliation.** JARVIS local hardware hold remains active.
