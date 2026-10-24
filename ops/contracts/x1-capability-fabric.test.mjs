@@ -73,5 +73,12 @@ test("all live release hard gates stay blocked without provider evidence", () =>
     if (key === "source_sha_pinned" || key === "code_tests_required") assert.equal(value,true);
     else assert.equal(value, false, key);
   }
-  assert.equal(m.staging.access, "BLOCKED_LINK_ID_UNAVAILABLE");
+  assert.equal(m.staging.access, "READ_VERIFIED");
+  assert.equal(m.staging.release, "BLOCKED_SECURITY");
+  assert.equal(m.staging.railway_project, "4fd76d35-df2c-4358-a936-0f5ac055d9d6");
+  assert.equal(m.staging.railway_environment, "abc93895-5f8e-4c9b-b913-3daaf2595ba3");
+  assert.equal(m.staging.engine_source.sha, "dd9ea695d064e6b5e14bc6b42b61884632d275f7");
+  assert.equal(m.staging.engine_source.unsafe_runtime, "chromium_no_sandbox");
+  assert.equal(m.staging.engine_source.nonroot_verified, false);
+  assert.equal(m.staging.legacy_project.access, "DENIED_VIEWER");
 });
