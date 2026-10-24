@@ -1,0 +1,28 @@
+name: X1 Universal Capability Fabric Contracts
+on:
+  pull_request:
+    paths:
+      - 'ops/contracts/x1-capability-fabric.v1.json'
+      - 'ops/contracts/x1-capability-fabric.test.mjs'
+      - 'docs/architecture/X1_UNIVERSAL_CAPABILITY_FABRIC_20261023.md'
+      - '.github/workflows/x1-capability-fabric.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-authorities:
+    name: Singleton Authority, Safety and Recovery Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate universal capability manifest (offline, no cloud actions)
+        run: node --test ops/contracts/x1-capability-fabric.test.mjs
+      - name: Verify no plaintext credentials in manifest
+        run: |
+          node -e 'const f=require("fs").readFileSync("ops/contracts/x1-capability-fabric.v1.json","utf8"); if(/-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----/.test(f))process.exit(1); console.log("PASS: no PEM private key blocks");'

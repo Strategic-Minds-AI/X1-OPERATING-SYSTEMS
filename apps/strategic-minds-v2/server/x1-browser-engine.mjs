@@ -34,7 +34,26 @@ export async function readBrowserEngineHealth({env=process.env,fetchImpl=fetch}=
      result?.status!=='operational'){
     throw new PublicApiError(503,'BROWSER_ENGINE_UNVERIFIED');
   }
-  return {status:'BROWSER_ENGINE_HEALTH_VERIFIED',read_only:true,
+  // A healthy HTTP listener does NOT establish safe browser execution.
+  // The engine must actually launch sandboxed Chromium as a non-root user.
+  let readyResponse;
+  try{
+    readyResponse=await fetchImpl(cfg.origin+'/readiness',{
+      method:'GET',
+      headers:{'x-api-key':env.ENGINE_API_KEY||env.BROWSER_ENGINE_API_KEY,accept:'application/json'},
+      redirect:'error',signal:AbortSignal.timeout(25000)
+    });
+  }catch{throw new PublicApiError(503,'BROWSER_SANDBOX_UNAVAILABLE');}
+  if(!readyResponse.ok)throw new PublicApiError(503,'BROWSER_SANDBOX_UNAVAILABLE');
+  let ready;
+  try{ready=await readyResponse.json();}
+  catch{throw new PublicApiError(503,'BROWSER_SANDBOX_UNVERIFIED');}
+  if(ready?.ok!==true||ready.browser_launch!=='verified'||
+     ready.security?.sandbox!=='required'||ready.security?.non_root!==true||
+     !Number.isInteger(ready.security?.uid)||ready.security.uid<=0){
+    throw new PublicApiError(503,'BROWSER_SANDBOX_UNVERIFIED');
+  }
+  return {status:'BROWSER_ENGINE_HEALTH_VERIFIED',read_only:true,sandbox_verified:true,
     engine_version:typeof result.engine_version==='string'?result.engine_version.slice(0,36):null,
     checked_at:new Date().toISOString()};
 }

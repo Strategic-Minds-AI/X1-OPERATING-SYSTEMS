@@ -1,0 +1,563 @@
+{
+  "schema_version": "x1.capability-fabric.v1",
+  "mission_id": "X1-UNIVERSAL-FABRIC-20261023",
+  "release_state": "DESIGN_ONLY",
+  "target": {
+    "repo": "Strategic-Minds-AI/X1-OPERATING-SYSTEMS",
+    "baseline_sha": "0994f0393619777cb701b9a6193c3d340bc706ba",
+    "branch": "architecture/x1-universal-capability-fabric-20261023"
+  },
+  "donors": [
+    {
+      "repo": "Strategic-Minds-AI/strategic-cloud-browser",
+      "sha": "da0497fdded34d619bd46dd5653e0e5e4bf84fcb",
+      "role": "browser_api_only",
+      "code_ci": "passed_7_of_7",
+      "hosted_security": "blocked"
+    },
+    {
+      "repo": "Strategic-Minds-AI/x1-ai-browser",
+      "role": "contracts_reference_only",
+      "security_exclusion": "no_sandbox_bypass"
+    }
+  ],
+  "authorities": {
+    "queue": {
+      "id": "x1-supabase-canonical",
+      "count": 1,
+      "existing": true,
+      "require_live_binding": true
+    },
+    "scheduler": {
+      "id": "x1-existing-five-minute-reconciler",
+      "count": 1,
+      "existing": true,
+      "require_live_binding": true
+    },
+    "guardian": {
+      "id": "x1-existing-independent-guardian",
+      "count": 1,
+      "existing": true,
+      "require_live_binding": true
+    },
+    "control_plane": {
+      "id": "x1-existing-control-plane",
+      "count": 1,
+      "existing": true,
+      "require_live_binding": true
+    }
+  },
+  "data_ownership": {
+    "x1_supabase": [
+      "missions",
+      "jobs",
+      "leases",
+      "idempotency",
+      "tenant_identity",
+      "approvals",
+      "receipts"
+    ],
+    "browser_db": [
+      "session_execution_metadata",
+      "browser_lease_ownership"
+    ],
+    "vault": [
+      "encrypted_artifacts",
+      "checksums",
+      "signed_receipts"
+    ],
+    "sync_pattern": "outbox_idempotent_receipts_no_two_phase_commit"
+  },
+  "gateway": {
+    "protocol": "mcp-streamable-http",
+    "auth": "OIDC_OAuth_scoped",
+    "tenant_scope": true,
+    "public": [
+      "x1-mcp-facade"
+    ],
+    "private": [
+      "browser-api",
+      "browser-worker",
+      "coding-worker",
+      "postgres"
+    ],
+    "forbidden_public": [
+      "CDP",
+      "database",
+      "browser-debug-port",
+      "unscoped-railway-run"
+    ]
+  },
+  "constraints": {
+    "no_duplicate_queues": true,
+    "no_duplicate_schedulers": true,
+    "no_prod_without_approval": true,
+    "no_secret_copy": true,
+    "no_new_paid_services_without_approval": true,
+    "browser_requires_nonroot_sandbox": true,
+    "external_egress_firewall_required": true,
+    "deny_unsafe_browser_fallback": true,
+    "auto_actions_restricted_to": [
+      "READ",
+      "DRAFT",
+      "APPROVED_STAGING"
+    ],
+    "human_approval_for": [
+      "production",
+      "domain",
+      "billing",
+      "credentials",
+      "external_communications",
+      "irreversible_changes"
+    ]
+  },
+  "work_packet": {
+    "required_fields": [
+      "mission_id",
+      "tenant_id",
+      "actor_id",
+      "industry",
+      "goal",
+      "success_metrics",
+      "idempotency_key",
+      "source_revision",
+      "action_class",
+      "dependencies",
+      "approval_state",
+      "rollback_pointer"
+    ],
+    "states": [
+      "DRAFT",
+      "PLANNED",
+      "APPROVAL_REQUIRED",
+      "QUEUED",
+      "LEASED",
+      "RUNNING",
+      "VALIDATING",
+      "SUCCEEDED",
+      "REPAIRABLE_FAILURE",
+      "TERMINAL_FAILURE",
+      "BLOCKED"
+    ],
+    "max_repair_attempts": 3
+  },
+  "agent_roles": [
+    "goal_interpreter",
+    "discovery",
+    "architect_benchmark",
+    "workflow_compiler",
+    "security_policy",
+    "cost_planner",
+    "dispatcher",
+    "specialist_worker",
+    "independent_guardian",
+    "bounded_repair",
+    "backup_recovery",
+    "documentation",
+    "release_operator"
+  ],
+  "capabilities": [
+    {
+      "id": "x1.missions",
+      "version": "1.0.0",
+      "owner": "X1 Operating Systems",
+      "status": "source_documented",
+      "action_class": "READ_DRAFT",
+      "tenant_scoped": true,
+      "output": "tenant_missions",
+      "scopes": [
+        "missions:read",
+        "missions:draft"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "x1.queue",
+      "version": "1.0.0",
+      "owner": "Canonical X1 Supabase queue",
+      "status": "source_documented",
+      "action_class": "STAGING_WRITE",
+      "tenant_scoped": true,
+      "output": "leased_tasks",
+      "scopes": [
+        "jobs:read",
+        "jobs:submit"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "x1.guardian",
+      "version": "1.0.0",
+      "owner": "Existing independent Guardian",
+      "status": "not_live_verified",
+      "action_class": "READ_DRAFT",
+      "tenant_scoped": true,
+      "output": "qa_evidence",
+      "scopes": [
+        "qa:read",
+        "qa:submit"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "x1.mcp_facade",
+      "version": "1.0.0",
+      "owner": "X1 OAuth MCP tool gateway",
+      "status": "planned",
+      "action_class": "READ_DRAFT",
+      "tenant_scoped": true,
+      "output": "mcp_tools",
+      "scopes": [
+        "capabilities:read"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "browser.api",
+      "version": "1.0.0",
+      "owner": "strategic-cloud-browser PR #6",
+      "status": "source_ci_pass",
+      "action_class": "STAGING_WRITE",
+      "tenant_scoped": true,
+      "output": "browser_sessions",
+      "scopes": [
+        "sessions:read",
+        "sessions:write"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "browser.worker",
+      "version": "1.0.0",
+      "owner": "nonroot sandbox-capable isolated worker",
+      "status": "blocked",
+      "action_class": "STAGING_WRITE",
+      "tenant_scoped": true,
+      "output": "isolated_browser",
+      "scopes": [
+        "browser:run"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "coding.worker",
+      "version": "1.0.0",
+      "owner": "existing X1 coding worker",
+      "status": "not_live_verified",
+      "action_class": "STAGING_WRITE",
+      "tenant_scoped": true,
+      "output": "isolated_code",
+      "scopes": [
+        "code:run"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "discovery.scraper",
+      "version": "1.0.0",
+      "owner": "CloudBrowser/authorized discovery",
+      "status": "not_live_verified",
+      "action_class": "STAGING_WRITE",
+      "tenant_scoped": true,
+      "output": "public_data",
+      "scopes": [
+        "discovery:run"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "models.router",
+      "version": "1.0.0",
+      "owner": "Ollama/approved model providers",
+      "status": "not_live_verified",
+      "action_class": "STAGING_WRITE",
+      "tenant_scoped": true,
+      "output": "llm_inference",
+      "scopes": [
+        "models:invoke"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "prompt.lab",
+      "version": "1.0.0",
+      "owner": "X1 prompt library/version/evals",
+      "status": "source_documented",
+      "action_class": "READ_DRAFT",
+      "tenant_scoped": true,
+      "output": "prompt_versions",
+      "scopes": [
+        "prompts:read",
+        "prompts:draft"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "launch.studio",
+      "version": "1.0.0",
+      "owner": "X1 native visual builder",
+      "status": "source_documented",
+      "action_class": "READ_DRAFT",
+      "tenant_scoped": true,
+      "output": "sitepacks",
+      "scopes": [
+        "sites:read",
+        "sites:draft"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "provider.github",
+      "version": "1.0.0",
+      "owner": "GitHub connector",
+      "status": "connected_when_authorized",
+      "action_class": "STAGING_WRITE",
+      "tenant_scoped": true,
+      "output": "git_source",
+      "scopes": [
+        "repo:read",
+        "repo:branch_write"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "provider.vercel",
+      "version": "1.0.0",
+      "owner": "Vercel connector",
+      "status": "not_live_verified",
+      "action_class": "STAGING_WRITE",
+      "tenant_scoped": true,
+      "output": "deploy_preview",
+      "scopes": [
+        "deploy:preview"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "provider.railway",
+      "version": "1.0.0",
+      "owner": "Railway connector",
+      "status": "connected_when_authorized",
+      "action_class": "READ_DRAFT",
+      "tenant_scoped": false,
+      "output": "service_health",
+      "scopes": [
+        "railway:read"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "provider.supabase",
+      "version": "1.0.0",
+      "owner": "Existing Supabase connector",
+      "status": "not_live_verified",
+      "action_class": "READ_DRAFT",
+      "tenant_scoped": true,
+      "output": "durable_data",
+      "scopes": [
+        "data:read"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "business.seo",
+      "version": "1.0.0",
+      "owner": "Search Console/analytics adapter",
+      "status": "planned",
+      "action_class": "READ_DRAFT",
+      "tenant_scoped": true,
+      "output": "search_analytics",
+      "scopes": [
+        "seo:read"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "business.crm",
+      "version": "1.0.0",
+      "owner": "Lead/CRM funnel adapter",
+      "status": "planned",
+      "action_class": "READ_DRAFT",
+      "tenant_scoped": true,
+      "output": "business_leads",
+      "scopes": [
+        "leads:read"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "business.comms",
+      "version": "1.0.0",
+      "owner": "Telnyx communication adapter",
+      "status": "planned",
+      "action_class": "PROTECTED",
+      "tenant_scoped": true,
+      "output": "outbound_messages",
+      "scopes": [
+        "comms:send"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "business.commerce",
+      "version": "1.0.0",
+      "owner": "Shopify/Stripe adapters",
+      "status": "planned",
+      "action_class": "PROTECTED",
+      "tenant_scoped": true,
+      "output": "payments",
+      "scopes": [
+        "payments:write"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "business.property",
+      "version": "1.0.0",
+      "owner": "Evidence-led property intelligence",
+      "status": "planned",
+      "action_class": "READ_DRAFT",
+      "tenant_scoped": true,
+      "output": "property_records",
+      "scopes": [
+        "property:read"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "evidence.vault",
+      "version": "1.0.0",
+      "owner": "Approved artifact archive + SHA",
+      "status": "not_live_verified",
+      "action_class": "READ_DRAFT",
+      "tenant_scoped": true,
+      "output": "artifacts",
+      "scopes": [
+        "evidence:read"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    },
+    {
+      "id": "backup.restore",
+      "version": "1.0.0",
+      "owner": "Provider backup/restore inventory",
+      "status": "not_live_verified",
+      "action_class": "PROTECTED",
+      "tenant_scoped": false,
+      "output": "disaster_recovery",
+      "scopes": [
+        "backups:restore"
+      ],
+      "execution": "deny_until_connected",
+      "requires_receipt": true
+    }
+  ],
+  "backups": {
+    "required_layers": [
+      "provider_native_snapshot",
+      "optional_wal_pitr_after_budget_approval",
+      "encrypted_offsite_logical_dump",
+      "separate_artifact_object_archive",
+      "git_source_and_config_manifest"
+    ],
+    "restore_drill_required": true,
+    "rpo_target_hours": 24,
+    "rto_target_hours": 4,
+    "target_verified": false,
+    "snapshot_verified": false,
+    "offsite_verified": false,
+    "restore_verified": false
+  },
+  "release_gates": {
+    "source_sha_pinned": true,
+    "code_tests_required": true,
+    "live_browser_sandbox_verified": false,
+    "live_auth_verified": false,
+    "ssrf_egress_verified": false,
+    "tenant_isolation_live_verified": false,
+    "screenshot_live_verified": false,
+    "restore_drill_verified": false,
+    "guardian_signed_receipt": false,
+    "production_authorized": false
+  },
+  "staging": {
+    "railway_project": "4fd76d35-df2c-4358-a936-0f5ac055d9d6",
+    "railway_project_name": "X1 AI Browser",
+    "railway_workspace": "Strategic Minds AI",
+    "railway_environment": "abc93895-5f8e-4c9b-b913-3daaf2595ba3",
+    "access": "READ_VERIFIED",
+    "release": "BLOCKED_SECURITY",
+    "engine_service": "0aab1ee9-7ac0-474a-bd22-eaa3e6d50368",
+    "mcp_service": "50e888dc-8269-4f10-82d1-babbfd4f2990",
+    "validator_service": "c287bd95-000c-4d04-89a4-a1e66554d43d",
+    "validator_v2_service": "6683d8aa-a860-4911-8be8-02481b92966a",
+    "engine_source": {
+      "repo": "Strategic-Minds-AI/x1-ai-browser",
+      "sha": "dd9ea695d064e6b5e14bc6b42b61884632d275f7",
+      "path": "clean-browser-engine/server.js",
+      "unsafe_runtime": "chromium_no_sandbox",
+      "nonroot_verified": false
+    },
+    "service_status": {
+      "engine": "ONLINE",
+      "mcp": "ONLINE",
+      "validator": "ONLINE",
+      "validator_v2": "OFFLINE_NO_ACTIVE_DEPLOYMENT"
+    },
+    "legacy_project": {
+      "project_id": "efc36e26-1f26-47bf-bc74-b81d95e8f262",
+      "environment_id": "185d4731-13cd-4ee3-847c-bf9fe1c6c0cc",
+      "access": "DENIED_VIEWER",
+      "source": "Strategic-Minds-AI/strategic-cloud-browser"
+    },
+    "runtime_findings": {
+      "engine_session_manager": "IN_PROCESS_ONLY",
+      "session_metadata_persistence": "DISABLED_MISSING_STAGING_BINDING_AT_STARTUP",
+      "engine_https_enforcement": "FALSE_AS_LOGGED",
+      "hardened_sandbox": "NOT_VERIFIED_OLD_ENGINE_NO_SANDBOX",
+      "browser_session_e2e": "NOT_RUN",
+      "multi_tenant_e2e": "NOT_RUN",
+      "mcp_oauth_verified": "NOT_RUN",
+      "database_restore_drill": "NOT_RUN",
+      "reason": "Railway engine deploy log and exact pinned source; not a proof of current secret values"
+    }
+  },
+  "migration_order": [
+    "M0_source_truth",
+    "M1_capability_contract",
+    "M2_browser_host_secure",
+    "M3_oauth_mcp_bridge",
+    "M4_canonical_queue_worker_lease_e2e",
+    "M5_backup_restore_drill",
+    "M6_universal_business_adapters",
+    "M7_progressive_verified_scale"
+  ],
+  "owner_approvals_pending": [
+    "new_billing_if_needed",
+    "railway_oauth_reconnect",
+    "production_release",
+    "credential_configuration",
+    "database_schema_or_restore"
+  ]
+}
