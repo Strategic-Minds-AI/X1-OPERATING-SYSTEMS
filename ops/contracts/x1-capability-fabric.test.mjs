@@ -48,7 +48,9 @@ test("capability IDs are unique, explicit and non-executable by registration", (
     assert.ok(c.scopes.length >= 1);
   }
   assert.equal(m.capabilities.find(c=>c.id==="browser.worker").status, "blocked");
-  assert.equal(m.capabilities.find(c=>c.id==="provider.railway").status, "blocked");
+  assert.equal(m.capabilities.find(c=>c.id==="provider.railway").status, "connected_when_authorized");
+  assert.equal(m.capabilities.find(c=>c.id==="provider.railway").execution, "deny_until_connected");
+  assert.equal(m.capabilities.find(c=>c.id==="browser.worker").execution, "deny_until_connected");
 });
 test("queue work packets include durable idempotency and lease ordering", () => {
   for (const f of ["mission_id","tenant_id","actor_id","idempotency_key","approval_state","rollback_pointer"]) assert.ok(m.work_packet.required_fields.includes(f));
