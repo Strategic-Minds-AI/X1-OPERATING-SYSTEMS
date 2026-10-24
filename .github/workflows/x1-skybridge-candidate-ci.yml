@@ -1,0 +1,42 @@
+name: X1 Skybridge Candidate CI
+on:
+  pull_request:
+    paths:
+      - 'apps/x1-skybridge-goal-to-completion/**'
+      - '.github/workflows/x1-skybridge-candidate-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: skybridge-candidate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Types, Tests, Build and Security
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: apps/x1-skybridge-goal-to-completion
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: apps/x1-skybridge-goal-to-completion/package-lock.json
+      - name: Reproducible install
+        run: npm ci --ignore-scripts --no-fund
+      - name: Type safety
+        run: npx tsc --noEmit
+      - name: Deterministic negative and regression tests
+        run: node --import tsx --test tests/model.test.ts tests/integration.test.ts tests/worker-bridge.test.ts tests/security-gates.test.ts tests/oauth.test.ts
+      - name: Build bundled MCP candidate
+        run: npm run build
+      - name: Dependency security hard gate
+        run: npm audit --omit=dev --audit-level=high
