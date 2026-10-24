@@ -530,6 +530,17 @@
       "environment_id": "185d4731-13cd-4ee3-847c-bf9fe1c6c0cc",
       "access": "DENIED_VIEWER",
       "source": "Strategic-Minds-AI/strategic-cloud-browser"
+    },
+    "runtime_findings": {
+      "engine_session_manager": "IN_PROCESS_ONLY",
+      "session_metadata_persistence": "DISABLED_MISSING_STAGING_BINDING_AT_STARTUP",
+      "engine_https_enforcement": "FALSE_AS_LOGGED",
+      "hardened_sandbox": "NOT_VERIFIED_OLD_ENGINE_NO_SANDBOX",
+      "browser_session_e2e": "NOT_RUN",
+      "multi_tenant_e2e": "NOT_RUN",
+      "mcp_oauth_verified": "NOT_RUN",
+      "database_restore_drill": "NOT_RUN",
+      "reason": "Railway engine deploy log and exact pinned source; not a proof of current secret values"
     }
   },
   "migration_order": [
