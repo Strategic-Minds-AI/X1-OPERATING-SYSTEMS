@@ -350,7 +350,7 @@
       "id": "provider.railway",
       "version": "1.0.0",
       "owner": "Railway connector",
-      "status": "blocked",
+      "status": "connected_when_authorized",
       "action_class": "READ_DRAFT",
       "tenant_scoped": false,
       "output": "service_health",
@@ -502,9 +502,35 @@
     "production_authorized": false
   },
   "staging": {
-    "railway_project": "efc36e26-1f26-47bf-bc74-b81d95e8f262",
-    "railway_environment": "185d4731-13cd-4ee3-847c-bf9fe1c6c0cc",
-    "access": "BLOCKED_LINK_ID_UNAVAILABLE"
+    "railway_project": "4fd76d35-df2c-4358-a936-0f5ac055d9d6",
+    "railway_project_name": "X1 AI Browser",
+    "railway_workspace": "Strategic Minds AI",
+    "railway_environment": "abc93895-5f8e-4c9b-b913-3daaf2595ba3",
+    "access": "READ_VERIFIED",
+    "release": "BLOCKED_SECURITY",
+    "engine_service": "0aab1ee9-7ac0-474a-bd22-eaa3e6d50368",
+    "mcp_service": "50e888dc-8269-4f10-82d1-babbfd4f2990",
+    "validator_service": "c287bd95-000c-4d04-89a4-a1e66554d43d",
+    "validator_v2_service": "6683d8aa-a860-4911-8be8-02481b92966a",
+    "engine_source": {
+      "repo": "Strategic-Minds-AI/x1-ai-browser",
+      "sha": "dd9ea695d064e6b5e14bc6b42b61884632d275f7",
+      "path": "clean-browser-engine/server.js",
+      "unsafe_runtime": "chromium_no_sandbox",
+      "nonroot_verified": false
+    },
+    "service_status": {
+      "engine": "ONLINE",
+      "mcp": "ONLINE",
+      "validator": "ONLINE",
+      "validator_v2": "OFFLINE_NO_ACTIVE_DEPLOYMENT"
+    },
+    "legacy_project": {
+      "project_id": "efc36e26-1f26-47bf-bc74-b81d95e8f262",
+      "environment_id": "185d4731-13cd-4ee3-847c-bf9fe1c6c0cc",
+      "access": "DENIED_VIEWER",
+      "source": "Strategic-Minds-AI/strategic-cloud-browser"
+    }
   },
   "migration_order": [
     "M0_source_truth",
