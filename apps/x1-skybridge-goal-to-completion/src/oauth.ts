@@ -1,5 +1,5 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
-import type { OAuthConfig, AuthInfo } from "skybridge/server";
+import { OAuthError, OAuthErrorCode, type OAuthConfig, type AuthInfo } from "skybridge/server";
 
 const supabase="https://uvdkzsbjackpjvpoxtyk.supabase.co";
 const issuer=supabase+"/auth/v1";
@@ -28,17 +28,17 @@ export function stagingOAuth():OAuthConfig<Claims>|undefined{
   requiredScopes:["openid"],
   verifier:{
    verifyAccessToken:async(token:string):Promise<AuthInfo<Claims>>=>{
-    const {payload}=await jwtVerify(token,jwks,{issuer,audience:"authenticated",algorithms:["ES256","RS256"],clockTolerance:30});
+    const {payload}=await jwtVerify(token,jwks,{issuer,audience:"authenticated",algorithms:["ES256","RS256"],clockTolerance:30}).catch(()=>{throw new OAuthError(OAuthErrorCode.InvalidToken,"Invalid or expired access token")});
     const sub=payload.sub, clientId=payload.client_id;
     if(typeof sub!=="string"||!uuid.test(sub)||typeof clientId!=="string"||!clientId||payload.role!=="authenticated"){
-     throw Error("X1_OAUTH_PRINCIPAL_INVALID");
+     throw new OAuthError(OAuthErrorCode.InvalidToken,"Invalid OAuth subject or client");
     }
-    if(typeof payload.scope!=="string"||!payload.scope.split(" ").includes("openid"))throw Error("X1_SCOPE_MISSING");
+    if(typeof payload.scope!=="string"||!payload.scope.split(" ").includes("openid"))throw new OAuthError(OAuthErrorCode.InsufficientScope,"openid scope required");
     const membershipUrl=supabase+"/rest/v1/x1_tenant_memberships?select=tenant_id,role&user_id=eq."+encodeURIComponent(sub)+"&tenant_id=eq."+encodeURIComponent(tenant)+"&status=eq.ACTIVE&limit=2";
     const response=await fetch(membershipUrl,{headers:{apikey:key,Authorization:"Bearer "+token,Accept:"application/json"},signal:AbortSignal.timeout(4500)});
-    if(!response.ok)throw Error("X1_TENANT_READ_FAILED");
+    if(!response.ok)throw new OAuthError(OAuthErrorCode.TemporarilyUnavailable,"Tenant membership lookup unavailable");
     const rows=await response.json();
-    if(!Array.isArray(rows)||rows.length!==1||!["OWNER","ADMIN","BUILDER","VALIDATOR"].includes(String(rows[0].role)))throw Error("X1_TENANT_DENIED");
+    if(!Array.isArray(rows)||rows.length!==1||!["OWNER","ADMIN","BUILDER","VALIDATOR"].includes(String(rows[0].role)))throw new OAuthError(OAuthErrorCode.AccessDenied,"Tenant access denied");
     return {token,clientId,scopes:payload.scope.split(" "),expiresAt:payload.exp,extra:{sub,clientId,tenantId:tenant}};
    }
   }
